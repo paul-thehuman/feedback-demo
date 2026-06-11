@@ -42,6 +42,9 @@
     .choices{display:grid;gap:10px;margin-top:10px}
     .choice{border:1px solid #e0e5ee;background:#fbfcfe;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex; gap:10px; align-items:flex-start; transition: background .2s, border-color .2s;}
     .choice:hover{background:#f4f7fd;border-color:#cfd8ea}
+    .choice.dim{opacity:.45}
+    .choice.chosen{border-color:var(--pink);background:#fff0f4}
+    .continue{margin-top:6px}
     .choice[data-score="2"] .badge{background: var(--ok)}
     .choice[data-score="1"] .badge{background: var(--warn)}
     .choice[data-score="0"] .badge{background: var(--bad)}
@@ -100,19 +103,19 @@
       <h2>Quick choice: what's your move?</h2>
       <p class="muted">There’s no perfect answer here. Just trade-offs.</p>
       <div class="choices">
-        <div class="choice" data-score="0" data-next="screen-mini" onclick="pick(this)">
+        <div class="choice" data-score="0" data-next="screen-mini" onclick="warmup(this)">
           <div class="badge">0</div>
           <div><strong>Delay it.</strong> Send a message: “Let’s talk next week.”
             <p class="muted">Signal: avoidance. Problem lingers. You feel better for 12 minutes.</p>
           </div>
         </div>
-        <div class="choice" data-score="1" data-next="screen-mini" onclick="pick(this)">
+        <div class="choice" data-score="1" data-next="screen-mini" onclick="warmup(this)">
           <div class="badge">1</div>
           <div><strong>Be blunt.</strong> “You’re dropping the ball.”
             <p class="muted">Signal: urgency but vague. Likely defensiveness, little learning.</p>
           </div>
         </div>
-        <div class="choice" data-score="2" data-next="screen-mini" onclick="pick(this)">
+        <div class="choice" data-score="2" data-next="screen-mini" onclick="warmup(this)">
           <div class="badge">2</div>
           <div><strong>Explore first.</strong> “Can we check in for five minutes?”
             <p class="muted">Signal: curiosity + respect. Keeps door open for facts.</p>
@@ -151,7 +154,8 @@
           <div>“On the Q3 deck yesterday, the slide deadlines slipped twice, which pushed the client send. Can we talk about what got in the way?”</div>
         </div>
       </div>
-      <div id="fb1" class="muted" style="margin-top:10px;"></div>
+      <div id="fb1" class="fb muted" style="margin-top:10px;"></div>
+      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
     </div>
 
     <div class="card hidden" id="screen-branch2">
@@ -171,7 +175,8 @@
           <div>“What collided with the deadlines? Let’s map priorities and reset realistically.”</div>
         </div>
       </div>
-      <div id="fb2" class="muted" style="margin-top:10px;"></div>
+      <div id="fb2" class="fb muted" style="margin-top:10px;"></div>
+      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
     </div>
 
     <div class="card hidden" id="screen-branch3">
@@ -191,7 +196,8 @@
           <div>“We’ll lock a 30-min priority review on Mondays, and you’ll flag risk by Thursday noon. I’ll unblock where needed.”</div>
         </div>
       </div>
-      <div id="fb3" class="muted" style="margin-top:10px;"></div>
+      <div id="fb3" class="fb muted" style="margin-top:10px;"></div>
+      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
     </div>
 
     <div class="card hidden" id="screen-outro">
@@ -227,41 +233,69 @@
 
   <script>
     let score = 0;
-    let steps = 0;
+    const MAX = 6; // three scored SBI decisions, 0–2 points each
 
     function start(){
-      score = 0; steps = 0;
+      score = 0;
       document.getElementById('score').textContent = score;
       setProgress(0);
+      // Reset every screen so a replay starts clean
+      document.querySelectorAll('.card').forEach(card => {
+        card.dataset.answered = '';
+        card.querySelectorAll('.choice').forEach(c => {
+          c.classList.remove('chosen','dim');
+          c.style.pointerEvents = '';
+        });
+        const fb = card.querySelector('.fb'); if(fb) fb.innerHTML = '';
+        const cont = card.querySelector('.continue'); if(cont) cont.classList.add('hidden');
+      });
       showScreen('screen-gate1');
       primeDownload();
     }
 
     function setProgress(p){
-      document.getElementById('progress').style.width = p + '%';
+      document.getElementById('progress').style.width = Math.max(0, Math.min(100, p)) + '%';
     }
 
-    function pick(el){
-      const val = Number(el.dataset.score || 0);
-      score += val;
-      steps += 1;
-      document.getElementById('score').textContent = score;
-      setProgress(Math.min(100, steps*20 + 10));
+    // Intro warm-up: unscored framing choice, just routes onward.
+    function warmup(el){
+      showScreen(el.dataset.next || 'screen-mini');
+    }
 
-      const fbTarget = document.querySelector('#fb'+steps);
-      if(fbTarget && el.dataset.feedback){
-        fbTarget.innerHTML = 'Feedback: ' + el.dataset.feedback;
-      }
+    // Scored decision: lock the screen, reveal feedback, then show Continue.
+    function pick(el){
+      const card = el.closest('.card');
+      if(card.dataset.answered) return;            // one scored answer per screen
+      card.dataset.answered = '1';
+
+      score += Number(el.dataset.score || 0);
+      document.getElementById('score').textContent = score;
+      const answered = document.querySelectorAll('.card[data-answered="1"]').length;
+      setProgress(answered / 3 * 100);
+
+      card.querySelectorAll('.choice').forEach(c => {
+        c.style.pointerEvents = 'none';
+        if(c !== el) c.classList.add('dim');
+      });
+      el.classList.add('chosen');
+
+      const fb = card.querySelector('.fb');
+      if(fb && el.dataset.feedback) fb.innerHTML = '<strong>Feedback:</strong> ' + el.dataset.feedback;
+
       const next = el.dataset.next || 'screen-outro';
-      if(steps >= 3 && next === 'screen-branch3'){ showScreen('screen-outro'); return; }
-      if(next === 'screen-outro'){ finalize(); } else { showScreen(next); }
+      const cont = card.querySelector('.continue');
+      if(cont){
+        cont.classList.remove('hidden');
+        cont.onclick = () => { next === 'screen-outro' ? finalize() : showScreen(next); };
+      } else {
+        next === 'screen-outro' ? finalize() : showScreen(next);
+      }
     }
 
     function finalize(){
       showScreen('screen-outro');
-      const max = 6;
-      document.getElementById('final').textContent = score + ' / ' + max;
-      document.getElementById('progressFinal').style.width = (score/max*100)+'%';
+      document.getElementById('final').textContent = score;     // markup already renders "/ 6"
+      document.getElementById('progressFinal').style.width = (score / MAX * 100) + '%';
     }
 
     function showScreen(id){
@@ -298,7 +332,7 @@
           <li><strong>Write it down:</strong> a 30-min weekly priority review saves hours later.</li>
         </ul>
         <div class="brand">The Human Co.</div>
-        <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
+        <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
         </body></html>
       `);
       w.document.close();
