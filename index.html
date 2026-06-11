@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Feedback Dilemma — Interactive Demo</title>
+  <style>
+    :root {
+      --pink:#FF2E63;
+      --accent:#FF6189;
+      --slate:#3A4252;
+      --black:#101216;
+      --light:#EAEAEA;
+      --bg:#f7f8fa;
+      --ok:#17a398;
+      --warn:#ff9f1c;
+      --bad:#ef476f;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color:var(--black);
+      background:linear-gradient(180deg,#ffffff, #f6f7fb 35%, #eef1f6);
+    }
+    .app{max-width: 880px;margin: 24px auto 64px;padding: 16px;}
+    .logo{display:flex;align-items:center;gap:10px;color:var(--slate);font-weight:700;letter-spacing:.4px}
+    .logo .dot{width:10px;height:10px;border-radius:999px;background:var(--pink)}
+    .card{background:white;border:1px solid #e9eef5;border-radius:18px;box-shadow: 0 6px 24px rgba(16,18,22,.05);padding: clamp(16px, 3vw, 28px);}
+    h1{margin:.2rem 0 0.75rem;font-size: clamp(1.2rem, 2.3vw, 1.6rem);color:var(--slate)}
+    h2{margin:0.2rem 0 0.75rem;font-size: clamp(1.05rem, 2vw, 1.25rem);color:var(--slate)}
+    p{line-height:1.55;margin:.5rem 0}
+    .muted{color:#607086;font-size:.95rem}
+    .grid{display:grid;gap:14px;grid-template-columns:1fr}
+    @media(min-width:750px){.grid{grid-template-columns:1.25fr .75fr}}
+    .btn{appearance:none;border:none;background:var(--black);color:white;border-radius:14px;padding:12px 16px;font-weight:600;cursor:pointer;transition:transform .04s ease,filter .2s, background .2s}
+    .btn:hover{filter:brightness(1.03)}
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:var(--slate)}
+    .btn.ghost{background:white;color:var(--slate);border:1px solid #d6dbe3}
+    .btn.inline{padding:8px 12px;border-radius:10px;font-size:.95rem}
+    .choices{display:grid;gap:10px;margin-top:10px}
+    .choice{border:1px solid #e0e5ee;background:#fbfcfe;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex; gap:10px; align-items:flex-start; transition: background .2s, border-color .2s;}
+    .choice:hover{background:#f4f7fd;border-color:#cfd8ea}
+    .choice[data-score="2"] .badge{background: var(--ok)}
+    .choice[data-score="1"] .badge{background: var(--warn)}
+    .choice[data-score="0"] .badge{background: var(--bad)}
+    .badge{min-width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .kb{background:#fff;border:1px dashed #d7deea;border-radius:14px;padding:12px 14px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#f1f4f9;color:#4a5a6d;font-size:.85rem;margin-right:6px}
+    .progress{height:10px;border-radius:999px;background:#f1f2f6;overflow:hidden}
+    .progress > span{display:block;height:10px;background:linear-gradient(90deg,var(--pink),var(--accent));width:0%}
+    .dialogue{background:#0f172a;color:#e6edf7;border-radius:16px;padding:14px 16px}
+    .dialogue .me{font-weight:700;color:#e9b1c2}
+    .scoreBox{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#f7f9ff;border:1px solid #e1e7f2}
+    .scoreBig{font-size:22px;font-weight:800;color:var(--slate)}
+    .footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+    .small{font-size:.9rem;color:#6b7a8d}
+    .cta{background:linear-gradient(90deg, var(--pink), var(--accent));border:none}
+    .hidden{display:none}
+    .checklist{list-style:none;padding-left:0}
+    .checklist li{display:flex;gap:10px;align-items:flex-start;margin:.35rem 0}
+    .check{width:22px;height:22px;border-radius:7px;border:1.5px solid #d5dce8;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+    .kbd{padding:2px 6px;border-radius:6px;background:#0b1220;color:#c8d3e4;font-family:ui-monospace, Menlo, monospace;font-size:.9rem}
+    a.link{color:var(--pink);text-decoration:none;border-bottom:1px solid currentColor}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="logo"><span class="dot"></span><span>The Human Co.</span></div>
+
+    <div class="card" id="screen-intro">
+      <div class="grid">
+        <div>
+          <h1>The Feedback Dilemma</h1>
+          <p class="muted">A 6-minute interactive on giving feedback that lands. Built as a portfolio demo. No fluff, just useful.</p>
+          <div class="scoreBox" style="margin:10px 0 14px;">
+            <div class="scoreBig"><span id="score">0</span> pts</div>
+            <div class="progress" style="flex:1"><span id="progress" style="width:0%"></span></div>
+          </div>
+          <p><strong>Scenario:</strong> Alex has missed two deadlines. You’ve got five minutes before your next meeting. What now?</p>
+          <div class="footer">
+            <button class="btn cta" onclick="start()">Start</button>
+            <div class="small">Made with HTML/CSS/JS. Embeddable via iframe.</div>
+          </div>
+        </div>
+        <div>
+          <div class="kb">
+            <h2>What you'll practice</h2>
+            <p class="small">Three habits that make feedback stick:</p>
+            <span class="pill">Clarity over catharsis</span>
+            <span class="pill">SBI framing</span>
+            <span class="pill">Curiosity first</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-gate1">
+      <h2>Quick choice: what's your move?</h2>
+      <p class="muted">There’s no perfect answer here. Just trade-offs.</p>
+      <div class="choices">
+        <div class="choice" data-score="0" data-next="screen-mini" onclick="pick(this)">
+          <div class="badge">0</div>
+          <div><strong>Delay it.</strong> Send a message: “Let’s talk next week.”
+            <p class="muted">Signal: avoidance. Problem lingers. You feel better for 12 minutes.</p>
+          </div>
+        </div>
+        <div class="choice" data-score="1" data-next="screen-mini" onclick="pick(this)">
+          <div class="badge">1</div>
+          <div><strong>Be blunt.</strong> “You’re dropping the ball.”
+            <p class="muted">Signal: urgency but vague. Likely defensiveness, little learning.</p>
+          </div>
+        </div>
+        <div class="choice" data-score="2" data-next="screen-mini" onclick="pick(this)">
+          <div class="badge">2</div>
+          <div><strong>Explore first.</strong> “Can we check in for five minutes?”
+            <p class="muted">Signal: curiosity + respect. Keeps door open for facts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-mini">
+      <h2>Mini-concept: the SBI frame</h2>
+      <p><span class="pill">S</span> <strong>Situation</strong> — name the moment. <span class="pill">B</span> <strong>Behavior</strong> — say what you saw. <span class="pill">I</span> <strong>Impact</strong> — explain the effect.</p>
+      <div class="dialogue">
+        <p><span class="me">You</span>: “<em>Yesterday in the client review</em> (S), <em>you joined 8 minutes late</em> (B), <em>which meant we missed your input on risks</em> (I).”</p>
+        <p><span class="me">Not this</span>: “You’re unreliable.”</p>
+      </div>
+      <div class="footer">
+        <button class="btn inline" onclick="showScreen('screen-branch')">Try it</button>
+        <button class="btn ghost inline" onclick="showScreen('screen-intro')">Restart</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-branch">
+      <h2>Say it. Pick your phrasing.</h2>
+      <p class="muted">Alex is in front of you. Choose your opening line.</p>
+      <div class="choices">
+        <div class="choice" data-score="0" data-next="screen-branch2" data-feedback="Labels trigger defensiveness. Describe behaviors, not identities." onclick="pick(this)">
+          <div class="badge">0</div>
+          <div>“You’re being unprofessional and it’s hurting the team.”</div>
+        </div>
+        <div class="choice" data-score="1" data-next="screen-branch2" data-feedback="Closer. You named the issue but skipped the specific moment and impact." onclick="pick(this)">
+          <div class="badge">1</div>
+          <div>“Missing deadlines isn’t acceptable.”</div>
+        </div>
+        <div class="choice" data-score="2" data-next="screen-branch2" data-feedback="Clean SBI opener. Specific and fair." onclick="pick(this)">
+          <div class="badge">2</div>
+          <div>“On the Q3 deck yesterday, the slide deadlines slipped twice, which pushed the client send. Can we talk about what got in the way?”</div>
+        </div>
+      </div>
+      <div id="fb1" class="muted" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card hidden" id="screen-branch2">
+      <h2>Follow up. What next?</h2>
+      <p class="muted">Alex crosses arms: “I had too many priorities.” Your move:</p>
+      <div class="choices">
+        <div class="choice" data-score="0" data-next="screen-branch3" data-feedback="Why-questions sound accusatory. Ask <em>what/how</em> to surface facts." onclick="pick(this)">
+          <div class="badge">0</div>
+          <div>“Why didn’t you plan better?”</div>
+        </div>
+        <div class="choice" data-score="1" data-next="screen-branch3" data-feedback="This solves for you, not the system. Explore constraints first." onclick="pick(this)">
+          <div class="badge">1</div>
+          <div>“From now on, send me your plan every morning.”</div>
+        </div>
+        <div class="choice" data-score="2" data-next="screen-branch3" data-feedback="Great. You’re diagnosing together and protecting outcomes." onclick="pick(this)">
+          <div class="badge">2</div>
+          <div>“What collided with the deadlines? Let’s map priorities and reset realistically.”</div>
+        </div>
+      </div>
+      <div id="fb2" class="muted" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card hidden" id="screen-branch3">
+      <h2>Close it out</h2>
+      <p class="muted">Time’s up soon. How will you land this?</p>
+      <div class="choices">
+        <div class="choice" data-score="0" data-next="screen-outro" data-feedback="Vague promises are theater. Set observable commitments." onclick="pick(this)">
+          <div class="badge">0</div>
+          <div>“Please try harder next week.”</div>
+        </div>
+        <div class="choice" data-score="1" data-next="screen-outro" data-feedback="Better, but still abstract. Tie to dates and checkpoints." onclick="pick(this)">
+          <div class="badge">1</div>
+          <div>“Let’s aim to improve deadlines going forward.”</div>
+        </div>
+        <div class="choice" data-score="2" data-next="screen-outro" data-feedback="Clear, time-bound, and mutual. Nice." onclick="pick(this)">
+          <div class="badge">2</div>
+          <div>“We’ll lock a 30-min priority review on Mondays, and you’ll flag risk by Thursday noon. I’ll unblock where needed.”</div>
+        </div>
+      </div>
+      <div id="fb3" class="muted" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card hidden" id="screen-outro">
+      <h2>Your result</h2>
+      <div class="scoreBox" style="margin:10px 0 14px;">
+        <div class="scoreBig"><span id="final">0</span> / 6</div>
+        <div class="progress" style="flex:1"><span id="progressFinal" style="width:0%"></span></div>
+      </div>
+      <p class="muted">Score 5–6: you balanced clarity and care. 3–4: decent, but tighten the close. 0–2: you’re venting, not leading.</p>
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <h2>Download: Feedback Cheat-Sheet</h2>
+          <ul class="checklist">
+            <li><span class="check">✔</span> <strong>Prepare SBI:</strong> Situation, Behavior, Impact in one sentence each.</li>
+            <li><span class="check">✔</span> <strong>Lead with curiosity:</strong> two what/how questions before advice.</li>
+            <li><span class="check">✔</span> <strong>Agree next steps:</strong> one habit + one checkpoint + one date.</li>
+          </ul>
+          <button class="btn secondary" onclick="downloadChecklist()">Download PDF</button>
+        </div>
+        <div class="kb">
+          <h2>Embed this demo</h2>
+          <p class="small">Upload this file to your site and use an iframe:</p>
+          <pre class="small" style="white-space:pre-wrap;background:#0b1220;color:#cfe3ff;padding:10px;border-radius:10px;overflow:auto"><code>&lt;iframe src="YOUR_URL/feedback-dilemma-demo.html" width="100%" height="760" style="border:0;border-radius:16px;overflow:hidden"&gt;&lt;/iframe&gt;</code></pre>
+          <p class="small">Tip: set <span class="kbd">height</span> to 760–900 depending on your layout.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn ghost inline" onclick="showScreen('screen-intro')">Restart</button>
+        <a class="link" id="downloadLink" href="#" download="feedback-dilemma-demo.html">Download this demo</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let score = 0;
+    let steps = 0;
+
+    function start(){
+      score = 0; steps = 0;
+      document.getElementById('score').textContent = score;
+      setProgress(0);
+      showScreen('screen-gate1');
+      primeDownload();
+    }
+
+    function setProgress(p){
+      document.getElementById('progress').style.width = p + '%';
+    }
+
+    function pick(el){
+      const val = Number(el.dataset.score || 0);
+      score += val;
+      steps += 1;
+      document.getElementById('score').textContent = score;
+      setProgress(Math.min(100, steps*20 + 10));
+
+      const fbTarget = document.querySelector('#fb'+steps);
+      if(fbTarget && el.dataset.feedback){
+        fbTarget.innerHTML = 'Feedback: ' + el.dataset.feedback;
+      }
+      const next = el.dataset.next || 'screen-outro';
+      if(steps >= 3 && next === 'screen-branch3'){ showScreen('screen-outro'); return; }
+      if(next === 'screen-outro'){ finalize(); } else { showScreen(next); }
+    }
+
+    function finalize(){
+      showScreen('screen-outro');
+      const max = 6;
+      document.getElementById('final').textContent = score + ' / ' + max;
+      document.getElementById('progressFinal').style.width = (score/max*100)+'%';
+    }
+
+    function showScreen(id){
+      document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function primeDownload(){
+      const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById('downloadLink');
+      a.href = url;
+    }
+
+    function downloadChecklist(){
+      const w = window.open('', '_blank');
+      w.document.write(`
+        <html><head><title>Feedback Cheat-Sheet</title>
+        <style>
+          body{font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:40px; color:#101216}
+          h1{font-size:20px;margin:0 0 8px;color:#3A4252}
+          .muted{color:#5a6a7d;margin-bottom:16px}
+          ul{line-height:1.6}
+          li{margin:8px 0}
+          .brand{position:fixed;bottom:24px;right:24px;color:#FF2E63;font-weight:700}
+        </style></head>
+        <body>
+        <h1>Feedback Cheat-Sheet</h1>
+        <div class="muted">Keep this on one page. Use it in your next 1:1.</div>
+        <ul>
+          <li><strong>SBI opener:</strong> Situation, Behavior, Impact in one sentence each.</li>
+          <li><strong>Ask first:</strong> two what/how questions before advice.</li>
+          <li><strong>Commit:</strong> one habit + one checkpoint + one date.</li>
+          <li><strong>Write it down:</strong> a 30-min weekly priority review saves hours later.</li>
+        </ul>
+        <div class="brand">The Human Co.</div>
+        <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
+        </body></html>
+      `);
+      w.document.close();
+    }
+
+    function showScreen(id){
+      document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    // Init
+    primeDownload();
+  </script>
+</body>
+</html>
