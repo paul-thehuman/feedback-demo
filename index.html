@@ -1,350 +1,1632 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Feedback Dilemma — Interactive Demo</title>
-  <style>
-    :root {
-      --pink:#FF2E63;
-      --accent:#FF6189;
-      --slate:#3A4252;
-      --black:#101216;
-      --light:#EAEAEA;
-      --bg:#f7f8fa;
-      --ok:#17a398;
-      --warn:#ff9f1c;
-      --bad:#ef476f;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Feedback Dilemma. Practise hard conversations</title>
+<style>
+  :root{
+    /* Core surfaces */
+    --canvas:#EAEAEA;
+    --surface:#FFFFFF;
+    --surface-sunk:#E2E3E6;
+    --ink:#101216;
+
+    /* Text on light.
+       --text-muted (#3A4252, the canon slate) is the workhorse for body/meta text.
+       --muted (#5A6573) is an intentional tonal extension for labels/eyebrows; it
+       clears WCAG AA on both white (5.9:1) and canvas (4.93:1). Keep it off any
+       surface darker than --canvas. */
+    --text:#101216;
+    --text-muted:#3A4252;
+    --muted:#5A6573;
+
+    /* Text on ink */
+    --on-ink:#FFFFFF;
+    --on-ink-muted:#C2C7D0;
+
+    /* Structure.
+       --line (#3A4252) is the brutalist draftsman's line for primary structure.
+       --line-soft (#C7CAD1) is used ONLY for non-text hairline dividers inside
+       panels/lists (no contrast minimum applies); never as a text colour. */
+    --line:#3A4252;
+    --line-soft:#C7CAD1;
+
+    /* Action (restricted) */
+    --pink:#FF2E63;
+    --pink-text:#D11F4E;
+    --pink-press:#D11F4E;
+
+    /* Evaluative (always paired with text + glyph) */
+    --eval-strong:#1B5E4F;
+    --eval-partial:#8A5A00;
+    --eval-weak:#B3261E;
+
+    --focus:#FF2E63;
+
+    --font-display:"Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-body:"Work Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    --font-mono:ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
+
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px;
+    --s5:40px; --s6:48px; --s8:64px;
+
+    --radius:4px;
+    --radius-chip:999px;
+    --border:1px solid var(--line);
+  }
+
+  *{box-sizing:border-box}
+
+  html{ -webkit-text-size-adjust:100%; }
+
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.5;
+  }
+
+  .app{
+    max-width:760px;
+    margin:0 auto;
+    padding:var(--s4) var(--s3) var(--s8);
+  }
+
+  /* ---- Type helpers ---- */
+  .t-display{ font-family:var(--font-display); font-weight:700; font-size:40px; line-height:40px; letter-spacing:-0.02em; margin:0; }
+  .t-headline{ font-family:var(--font-display); font-weight:700; font-size:24px; line-height:32px; letter-spacing:-0.01em; margin:0; }
+  .t-title{ font-family:var(--font-display); font-weight:700; font-size:18px; line-height:24px; margin:0; }
+  .t-label{ font-family:var(--font-body); font-weight:600; font-size:11px; line-height:16px; letter-spacing:0.12em; text-transform:uppercase; }
+  .t-body{ font-size:16px; line-height:24px; }
+  .t-body-sm{ font-size:14px; line-height:20px; }
+  .muted{ color:var(--muted); }
+
+  p{ margin:0 0 var(--s2); }
+  .lead{ margin:0 0 var(--s3); }
+
+  /* ---- Masthead ---- */
+  .masthead{
+    display:flex; align-items:center; gap:var(--s1);
+    padding-bottom:var(--s2);
+    margin-bottom:var(--s3);
+    border-bottom:1px solid var(--line);
+  }
+  .masthead .mark{ width:10px; height:10px; background:var(--ink); flex:0 0 auto; }
+  .masthead .wordmark{ font:600 11px/16px var(--font-body); letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); }
+
+  /* ---- Skip link ---- */
+  .skip-link{
+    position:absolute; left:-9999px; top:0;
+    background:var(--ink); color:var(--on-ink);
+    padding:12px 16px; border-radius:var(--radius);
+    z-index:10; font-weight:600;
+  }
+  .skip-link:focus{ left:var(--s2); top:var(--s2); }
+
+  /* ---- Card ---- */
+  .card{
+    background:var(--surface);
+    border:var(--border);
+    border-radius:var(--radius);
+    padding:var(--s4);
+  }
+
+  .panel{
+    background:var(--canvas);
+    border:1px solid var(--line-soft);
+    border-radius:var(--radius);
+    padding:var(--s3);
+  }
+
+  /* ---- Status / progress strip ---- */
+  .statusbar{ margin-bottom:var(--s3); }
+  .status-row{ display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; }
+  .step-label{ color:var(--text-muted); white-space:nowrap; margin:0; }
+  .posture{ color:var(--text-muted); white-space:nowrap; margin:0; }
+  .progress{
+    flex:1; min-width:120px; height:8px;
+    background:var(--surface-sunk);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    margin-top:var(--s1);
+  }
+  .progress-fill{
+    display:block; height:100%;
+    background:var(--ink);
+    inline-size:0%;
+    transition:inline-size .3s ease;
+  }
+
+  /* ---- Screens ---- */
+  .screen{ outline:none; }
+  .screen[tabindex="-1"]:focus{ outline:none; }
+  h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus{ outline:none; }
+  #main[tabindex="-1"]:focus{ outline:none; }
+
+  .screen-head{ margin-bottom:var(--s3); }
+  .eyebrow{ color:var(--muted); display:block; margin-bottom:var(--s1); }
+
+  /* ---- Scene / dialogue block ---- */
+  .scene{
+    background:var(--ink);
+    color:var(--on-ink);
+    border-radius:var(--radius);
+    padding:var(--s3);
+    margin:var(--s3) 0;
+  }
+  .scene .speaker{
+    font:600 11px/16px var(--font-body);
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--on-ink-muted);
+    display:block; margin-bottom:4px;
+  }
+  .scene p{ color:var(--on-ink); margin:0 0 var(--s2); }
+  .scene p:last-child{ margin-bottom:0; }
+  .scene .cue{ color:var(--on-ink-muted); font-style:normal; }
+
+  /* ---- SBI primer ---- */
+  .sbi-row{ display:flex; gap:var(--s2); align-items:flex-start; margin:0 0 var(--s2); }
+  .sbi-tag{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; flex:0 0 auto;
+    font:700 14px/1 var(--font-display);
+    color:var(--on-ink); background:var(--ink);
+    border-radius:var(--radius);
+  }
+  .sbi-row .sbi-text{ margin:0; padding-top:3px; }
+
+  /* ---- Choices ---- */
+  .prompt-line{ font-weight:600; margin:var(--s3) 0 var(--s1); }
+  .choices{
+    display:grid; gap:var(--s2);
+    margin:var(--s2) 0 0;
+    list-style:none; padding:0;
+  }
+  .choice{
+    display:block; width:100%;
+    text-align:left;
+    font:400 16px/24px var(--font-body);
+    color:var(--text);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:var(--s2);
+    min-height:44px;
+    cursor:pointer;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .choice:hover{ background:var(--canvas); }
+  .choice:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+  .choice.is-chosen{
+    border-color:var(--ink);
+    border-left:4px solid var(--pink);
+    padding-left:calc(var(--s2) - 3px);
+  }
+  .choice .chosen-tag{
+    display:none;
+    font:600 11px/16px var(--font-body);
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-muted);
+    margin-bottom:var(--s1);
+  }
+  .choice.is-chosen .chosen-tag{ display:block; }
+  .choice[disabled]{ cursor:default; }
+  .choice.is-dim{ opacity:0.55; }
+
+  /* ---- Verdict / feedback ---- */
+  .verdict{
+    margin-top:var(--s3);
+    border:1px solid var(--line);
+    border-left:4px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--surface);
+    padding:var(--s3);
+  }
+  .verdict .tier{
+    display:inline-flex; align-items:center; gap:6px;
+    font:600 11px/16px var(--font-body);
+    letter-spacing:0.12em; text-transform:uppercase;
+    margin-bottom:var(--s1);
+  }
+  .verdict .tier .glyph{ font-size:13px; }
+  .verdict.is-strong{ border-left-color:var(--eval-strong); }
+  .verdict.is-partial{ border-left-color:var(--eval-partial); }
+  .verdict.is-weak{ border-left-color:var(--eval-weak); }
+  .verdict.is-strong .tier{ color:var(--eval-strong); }
+  .verdict.is-partial .tier{ color:var(--eval-partial); }
+  .verdict.is-weak .tier{ color:var(--eval-weak); }
+  .verdict p{ color:var(--text); margin:0; }
+  .verdict .fb-prefix{ font-weight:600; }
+
+  .verdict[hidden]{ display:none; }
+
+  .fade-in{ animation:fadeIn .18s ease; }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ---- Buttons ---- */
+  .btn{
+    font:600 16px/1 var(--font-body);
+    border-radius:var(--radius);
+    padding:14px var(--s3);
+    min-height:48px;
+    cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:var(--s1);
+    border:1px solid transparent;
+    background:none;
+  }
+  .btn:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+  /* Resting fill is the darker #D11F4E so white label text clears WCAG AA (5.23:1).
+     #FF2E63 is reserved for non-text accents (borders, progress fill). */
+  .btn-primary{ background:var(--pink-press); color:var(--on-ink); border:none; }
+  .btn-primary:hover{ background:var(--ink); }
+  .btn-primary:active{ background:var(--ink); transform:translateY(1px); }
+  .btn-secondary{ background:transparent; color:var(--text); border:1px solid var(--line); }
+  .btn-secondary:hover{ background:var(--surface); }
+  .btn-ghost{ background:transparent; border:none; color:var(--pink-text); padding-left:0; padding-right:0; min-height:44px; }
+  .btn-ghost:hover{ text-decoration:underline; }
+
+  .actions{ display:flex; flex-wrap:wrap; gap:var(--s2); align-items:center; margin-top:var(--s3); }
+
+  .continue-wrap{ margin-top:var(--s3); }
+  .continue-wrap[hidden]{ display:none; }
+
+  /* ---- Intro split ---- */
+  .split{ display:grid; gap:var(--s3); grid-template-columns:1fr; }
+  @media(min-width:680px){ .split{ grid-template-columns:1.4fr 1fr; } }
+  .practise-list{ list-style:none; padding:0; margin:var(--s2) 0 0; }
+  .practise-list li{ display:flex; gap:var(--s1); padding:6px 0; border-bottom:1px solid var(--line-soft); }
+  .practise-list li:last-child{ border-bottom:none; }
+  .practise-list .n{ font:700 14px/1.4 var(--font-display); color:var(--pink-text); flex:0 0 auto; }
+
+  /* ---- Result ---- */
+  .result-axes{ display:grid; gap:var(--s3); grid-template-columns:1fr; margin:var(--s3) 0; }
+  @media(min-width:560px){ .result-axes{ grid-template-columns:1fr 1fr; } }
+  .axis{ border:1px solid var(--line); border-radius:var(--radius); padding:var(--s3); }
+  .axis .axis-label{ color:var(--muted); display:block; margin-bottom:var(--s1); }
+  .result-score{ display:flex; align-items:baseline; gap:var(--s1); margin-bottom:var(--s1); }
+  .result-score .num{ font:700 40px/1 var(--font-display); letter-spacing:-0.02em; color:var(--text); }
+  .result-score .denom{ font:400 16px/1 var(--font-body); color:var(--muted); }
+  .result-tally{ color:var(--text-muted); margin:0 0 var(--s1); }
+  .result-tally .tally-num{ font-weight:600; color:var(--text); }
+  .band-tag{ display:inline-flex; align-items:center; gap:6px; font:600 11px/16px var(--font-body); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:var(--s1); }
+  .band-strong{ color:var(--eval-strong); }
+  .band-mid{ color:var(--text-muted); }
+  .band-weak{ color:var(--eval-weak); }
+
+  .callout{
+    border:1px solid var(--line);
+    border-left:4px solid var(--ink);
+    border-radius:var(--radius);
+    padding:var(--s3);
+    margin:var(--s3) 0;
+    background:var(--surface);
+  }
+  .callout[hidden]{ display:none; }
+
+  /* ---- Review ---- */
+  .review-list{ display:grid; gap:var(--s2); margin:var(--s3) 0; }
+  .review-row{
+    border:1px solid var(--line);
+    border-left:4px solid var(--line);
+    border-radius:var(--radius);
+    padding:var(--s3);
+    background:var(--surface);
+  }
+  .review-row.r-matched{ border-left-color:var(--eval-strong); }
+  .review-row.r-close{ border-left-color:var(--eval-partial); }
+  .review-row.r-rethink{ border-left-color:var(--eval-weak); }
+  .review-row .r-head{ display:flex; justify-content:space-between; gap:var(--s2); flex-wrap:wrap; align-items:baseline; margin-bottom:var(--s1); }
+  .review-row .r-title{ font-weight:600; }
+  .review-row .r-tag{ font:600 11px/16px var(--font-body); letter-spacing:0.12em; text-transform:uppercase; display:inline-flex; align-items:center; gap:6px; }
+  .review-row.r-matched .r-tag{ color:var(--eval-strong); }
+  .review-row.r-close .r-tag{ color:var(--eval-partial); }
+  .review-row.r-rethink .r-tag{ color:var(--eval-weak); }
+  .review-row .r-field{ margin:var(--s1) 0 0; }
+  .review-row .r-field .lbl{ font-weight:600; }
+
+  /* ---- Details (walk-back, builders) ---- */
+  details{ border:1px solid var(--line); border-radius:var(--radius); padding:var(--s2) var(--s3); margin-top:var(--s2); background:var(--surface); }
+  details summary{ cursor:pointer; font:600 11px/16px var(--font-body); letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); min-height:44px; display:flex; align-items:center; padding:var(--s1) 0; }
+  details summary:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+  details[open]{ padding-bottom:var(--s3); }
+  .walkback{ margin-top:var(--s2); }
+  .walkback .wb-row{ padding:var(--s2) 0; border-bottom:1px solid var(--line-soft); }
+  .walkback .wb-row:last-child{ border-bottom:none; }
+  .walkback .wb-model{ font-style:italic; color:var(--text-muted); }
+
+  /* ---- Share row ---- */
+  .share-row{ display:flex; flex-wrap:wrap; gap:var(--s2); margin-top:var(--s2); }
+  .share-help{ margin-top:var(--s1); }
+
+  /* ---- Code block ---- */
+  .codeblock{
+    background:var(--ink); color:var(--on-ink-muted);
+    font:400 13px/20px var(--font-mono);
+    border-radius:var(--radius); padding:var(--s2);
+    white-space:pre-wrap; word-break:break-all;
+    margin:var(--s2) 0;
+  }
+
+  /* ---- End CTA ---- */
+  .end-cta{ margin-top:var(--s4); padding-top:var(--s3); border-top:1px solid var(--line); color:var(--text-muted); }
+  .end-cta a{ color:var(--pink-text); text-decoration:underline; text-underline-offset:2px; }
+
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:var(--s4) 0; }
+
+  /* ---- SR-only ---- */
+  .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+  /* ---- Cheat sheet (print-only on screen) ---- */
+  #cheatsheet{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+  /* ---- Mobile reflow ---- */
+  @media(max-width:560px){
+    .app{ padding:var(--s3) var(--s2) var(--s6); }
+    .card{ padding:var(--s3); }
+    .t-display{ font-size:32px; line-height:32px; }
+    .t-headline{ font-size:20px; line-height:28px; }
+    /* Stack every action/share button full-width on phones so adjacent 44px+
+       tap targets get their own row and don't crowd. */
+    .actions, .share-row{ flex-direction:column; align-items:stretch; row-gap:var(--s2); }
+    .btn{ width:100%; }
+    .actions .btn-ghost, .share-row .btn-ghost{ width:100%; justify-content:center; }
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    *, *::before, *::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-      color:var(--black);
-      background:linear-gradient(180deg,#ffffff, #f6f7fb 35%, #eef1f6);
-    }
-    .app{max-width: 880px;margin: 24px auto 64px;padding: 16px;}
-    .logo{display:flex;align-items:center;gap:10px;color:var(--slate);font-weight:700;letter-spacing:.4px}
-    .logo .dot{width:10px;height:10px;border-radius:999px;background:var(--pink)}
-    .card{background:white;border:1px solid #e9eef5;border-radius:18px;box-shadow: 0 6px 24px rgba(16,18,22,.05);padding: clamp(16px, 3vw, 28px);}
-    h1{margin:.2rem 0 0.75rem;font-size: clamp(1.2rem, 2.3vw, 1.6rem);color:var(--slate)}
-    h2{margin:0.2rem 0 0.75rem;font-size: clamp(1.05rem, 2vw, 1.25rem);color:var(--slate)}
-    p{line-height:1.55;margin:.5rem 0}
-    .muted{color:#607086;font-size:.95rem}
-    .grid{display:grid;gap:14px;grid-template-columns:1fr}
-    @media(min-width:750px){.grid{grid-template-columns:1.25fr .75fr}}
-    .btn{appearance:none;border:none;background:var(--black);color:white;border-radius:14px;padding:12px 16px;font-weight:600;cursor:pointer;transition:transform .04s ease,filter .2s, background .2s}
-    .btn:hover{filter:brightness(1.03)}
-    .btn:active{transform:translateY(1px)}
-    .btn.secondary{background:var(--slate)}
-    .btn.ghost{background:white;color:var(--slate);border:1px solid #d6dbe3}
-    .btn.inline{padding:8px 12px;border-radius:10px;font-size:.95rem}
-    .choices{display:grid;gap:10px;margin-top:10px}
-    .choice{border:1px solid #e0e5ee;background:#fbfcfe;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex; gap:10px; align-items:flex-start; transition: background .2s, border-color .2s;}
-    .choice:hover{background:#f4f7fd;border-color:#cfd8ea}
-    .choice.dim{opacity:.45}
-    .choice.chosen{border-color:var(--pink);background:#fff0f4}
-    .continue{margin-top:6px}
-    .choice[data-score="2"] .badge{background: var(--ok)}
-    .choice[data-score="1"] .badge{background: var(--warn)}
-    .choice[data-score="0"] .badge{background: var(--bad)}
-    .badge{min-width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:700}
-    .kb{background:#fff;border:1px dashed #d7deea;border-radius:14px;padding:12px 14px}
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#f1f4f9;color:#4a5a6d;font-size:.85rem;margin-right:6px}
-    .progress{height:10px;border-radius:999px;background:#f1f2f6;overflow:hidden}
-    .progress > span{display:block;height:10px;background:linear-gradient(90deg,var(--pink),var(--accent));width:0%}
-    .dialogue{background:#0f172a;color:#e6edf7;border-radius:16px;padding:14px 16px}
-    .dialogue .me{font-weight:700;color:#e9b1c2}
-    .scoreBox{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#f7f9ff;border:1px solid #e1e7f2}
-    .scoreBig{font-size:22px;font-weight:800;color:var(--slate)}
-    .footer{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-    .small{font-size:.9rem;color:#6b7a8d}
-    .cta{background:linear-gradient(90deg, var(--pink), var(--accent));border:none}
-    .hidden{display:none}
-    .checklist{list-style:none;padding-left:0}
-    .checklist li{display:flex;gap:10px;align-items:flex-start;margin:.35rem 0}
-    .check{width:22px;height:22px;border-radius:7px;border:1.5px solid #d5dce8;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
-    .kbd{padding:2px 6px;border-radius:6px;background:#0b1220;color:#c8d3e4;font-family:ui-monospace, Menlo, monospace;font-size:.9rem}
-    a.link{color:var(--pink);text-decoration:none;border-bottom:1px solid currentColor}
-  </style>
+  }
+
+  @media print{
+    body > *:not(#cheatsheet){ display:none !important; }
+    #cheatsheet{ position:static; width:auto; height:auto; clip:auto; margin:0; padding:0; }
+    #cheatsheet *{ color:#000 !important; background:#fff !important; }
+  }
+</style>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to the exercise</a>
+
   <div class="app">
-    <div class="logo"><span class="dot"></span><span>The Human Co.</span></div>
+    <header class="masthead">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="wordmark">The Human Co.</span>
+    </header>
 
-    <div class="card" id="screen-intro">
-      <div class="grid">
-        <div>
-          <h1>The Feedback Dilemma</h1>
-          <p class="muted">A 6-minute interactive on giving feedback that lands. Built as a portfolio demo. No fluff, just useful.</p>
-          <div class="scoreBox" style="margin:10px 0 14px;">
-            <div class="scoreBig"><span id="score">0</span> pts</div>
-            <div class="progress" style="flex:1"><span id="progress" style="width:0%"></span></div>
+    <main id="main" tabindex="-1">
+      <!-- Persistent status strip (hidden on intro/result) -->
+      <div class="statusbar" id="statusbar" hidden>
+        <div class="status-row">
+          <p class="step-label t-label" id="step-label">Decision <span id="step-now">1</span> of <span id="step-total">4</span></p>
+          <p class="posture t-label" id="posture-label">Alex: <span class="posture-glyph" id="posture-glyph" aria-hidden="true"></span><span id="posture-word"></span></p>
+        </div>
+        <div class="progress" id="progressbar" aria-hidden="true">
+          <span class="progress-fill" id="progress-fill"></span>
+        </div>
+      </div>
+
+      <div id="screen-region">
+
+        <!-- INTRO -->
+        <section id="screen-intro" class="screen card" aria-labelledby="h-intro" tabindex="-1">
+          <div class="split">
+            <div>
+              <p class="eyebrow t-label">A practice round</p>
+              <h1 id="h-intro" class="t-display">The Feedback Dilemma</h1>
+              <p class="lead muted">A short practice round on giving hard feedback with the SBI model. You're the manager. Every choice changes how Alex responds.</p>
+              <p><strong>The setup.</strong> Alex has missed two deadlines, the Henderson brief and Tuesday's report. You have ten minutes before your next meeting. Alex sits down, guarded.</p>
+              <div class="actions">
+                <button class="btn btn-primary" id="start-btn" type="button">Start the conversation</button>
+              </div>
+            </div>
+            <div>
+              <div class="panel">
+                <h2 class="t-title">What you'll practise</h2>
+                <ul class="practise-list t-body-sm">
+                  <li><span class="n">1</span><span>Open with SBI, then stop</span></li>
+                  <li><span class="n">2</span><span>Lead with a real question</span></li>
+                  <li><span class="n">3</span><span>Find the cause, split the blame fairly</span></li>
+                  <li><span class="n">4</span><span>Close on a concrete commitment</span></li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <p><strong>Scenario:</strong> Alex has missed two deadlines. You’ve got five minutes before your next meeting. What now?</p>
-          <div class="footer">
-            <button class="btn cta" onclick="start()">Start</button>
-            <div class="small">Made with HTML/CSS/JS. Embeddable via iframe.</div>
+        </section>
+
+        <!-- PRIMER -->
+        <section id="screen-primer" class="screen card" hidden aria-labelledby="h-primer" tabindex="-1">
+          <div class="screen-head">
+            <p class="eyebrow t-label">Before you start</p>
+            <h2 id="h-primer" class="t-headline">SBI keeps feedback about behaviour, not character</h2>
           </div>
-        </div>
-        <div>
-          <div class="kb">
-            <h2>What you'll practice</h2>
-            <p class="small">Three habits that make feedback stick:</p>
-            <span class="pill">Clarity over catharsis</span>
-            <span class="pill">SBI framing</span>
-            <span class="pill">Curiosity first</span>
+          <div class="sbi-row">
+            <span class="sbi-tag" aria-hidden="true">S</span>
+            <p class="sbi-text"><strong>Situation.</strong> Name the specific moment. "In the last fortnight..."</p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card hidden" id="screen-gate1">
-      <h2>Quick choice: what's your move?</h2>
-      <p class="muted">There’s no perfect answer here. Just trade-offs.</p>
-      <div class="choices">
-        <div class="choice" data-score="0" data-next="screen-mini" onclick="warmup(this)">
-          <div class="badge">0</div>
-          <div><strong>Delay it.</strong> Send a message: “Let’s talk next week.”
-            <p class="muted">Signal: avoidance. Problem lingers. You feel better for 12 minutes.</p>
+          <div class="sbi-row">
+            <span class="sbi-tag" aria-hidden="true">B</span>
+            <p class="sbi-text"><strong>Behaviour.</strong> What you observed, not what you concluded. "...the Henderson brief and Tuesday's report came in late..." Never "...you've been sloppy."</p>
           </div>
-        </div>
-        <div class="choice" data-score="1" data-next="screen-mini" onclick="warmup(this)">
-          <div class="badge">1</div>
-          <div><strong>Be blunt.</strong> “You’re dropping the ball.”
-            <p class="muted">Signal: urgency but vague. Likely defensiveness, little learning.</p>
+          <div class="sbi-row">
+            <span class="sbi-tag" aria-hidden="true">I</span>
+            <p class="sbi-text"><strong>Impact.</strong> The concrete effect. "...so the client saw a draft that wasn't ready."</p>
           </div>
-        </div>
-        <div class="choice" data-score="2" data-next="screen-mini" onclick="warmup(this)">
-          <div class="badge">2</div>
-          <div><strong>Explore first.</strong> “Can we check in for five minutes?”
-            <p class="muted">Signal: curiosity + respect. Keeps door open for facts.</p>
+          <p><strong>Then stop talking.</strong> SBI opens the conversation. Curiosity earns the truth.</p>
+          <div class="actions">
+            <button class="btn btn-primary" id="primer-continue" type="button">Begin</button>
+            <button class="btn btn-ghost" id="primer-skip" type="button">Skip to the scenario</button>
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
 
-    <div class="card hidden" id="screen-mini">
-      <h2>Mini-concept: the SBI frame</h2>
-      <p><span class="pill">S</span> <strong>Situation</strong> — name the moment. <span class="pill">B</span> <strong>Behavior</strong> — say what you saw. <span class="pill">I</span> <strong>Impact</strong> — explain the effect.</p>
-      <div class="dialogue">
-        <p><span class="me">You</span>: “<em>Yesterday in the client review</em> (S), <em>you joined 8 minutes late</em> (B), <em>which meant we missed your input on risks</em> (I).”</p>
-        <p><span class="me">Not this</span>: “You’re unreliable.”</p>
-      </div>
-      <div class="footer">
-        <button class="btn inline" onclick="showScreen('screen-branch')">Try it</button>
-        <button class="btn ghost inline" onclick="showScreen('screen-intro')">Restart</button>
-      </div>
-    </div>
+        <!-- DECISION (single reused screen, populated by the engine) -->
+        <section id="screen-decision" class="screen card" hidden aria-labelledby="h-decision" tabindex="-1">
+          <div class="screen-head">
+            <p class="eyebrow t-label" id="decision-eyebrow">Decision 1 of 4</p>
+            <h2 id="h-decision" class="t-headline" tabindex="-1">The opener</h2>
+          </div>
 
-    <div class="card hidden" id="screen-branch">
-      <h2>Say it. Pick your phrasing.</h2>
-      <p class="muted">Alex is in front of you. Choose your opening line.</p>
-      <div class="choices">
-        <div class="choice" data-score="0" data-next="screen-branch2" data-feedback="Labels trigger defensiveness. Describe behaviors, not identities." onclick="pick(this)">
-          <div class="badge">0</div>
-          <div>“You’re being unprofessional and it’s hurting the team.”</div>
-        </div>
-        <div class="choice" data-score="1" data-next="screen-branch2" data-feedback="Closer. You named the issue but skipped the specific moment and impact." onclick="pick(this)">
-          <div class="badge">1</div>
-          <div>“Missing deadlines isn’t acceptable.”</div>
-        </div>
-        <div class="choice" data-score="2" data-next="screen-branch2" data-feedback="Clean SBI opener. Specific and fair." onclick="pick(this)">
-          <div class="badge">2</div>
-          <div>“On the Q3 deck yesterday, the slide deadlines slipped twice, which pushed the client send. Can we talk about what got in the way?”</div>
-        </div>
-      </div>
-      <div id="fb1" class="fb muted" style="margin-top:10px;"></div>
-      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
-    </div>
+          <div class="scene" id="scene-block">
+            <span class="speaker" id="scene-speaker">Alex</span>
+            <p id="scene-line"></p>
+          </div>
 
-    <div class="card hidden" id="screen-branch2">
-      <h2>Follow up. What next?</h2>
-      <p class="muted">Alex crosses arms: “I had too many priorities.” Your move:</p>
-      <div class="choices">
-        <div class="choice" data-score="0" data-next="screen-branch3" data-feedback="Why-questions sound accusatory. Ask <em>what/how</em> to surface facts." onclick="pick(this)">
-          <div class="badge">0</div>
-          <div>“Why didn’t you plan better?”</div>
-        </div>
-        <div class="choice" data-score="1" data-next="screen-branch3" data-feedback="This solves for you, not the system. Explore constraints first." onclick="pick(this)">
-          <div class="badge">1</div>
-          <div>“From now on, send me your plan every morning.”</div>
-        </div>
-        <div class="choice" data-score="2" data-next="screen-branch3" data-feedback="Great. You’re diagnosing together and protecting outcomes." onclick="pick(this)">
-          <div class="badge">2</div>
-          <div>“What collided with the deadlines? Let’s map priorities and reset realistically.”</div>
-        </div>
-      </div>
-      <div id="fb2" class="fb muted" style="margin-top:10px;"></div>
-      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
-    </div>
+          <p class="prompt-line" id="decision-prompt"></p>
 
-    <div class="card hidden" id="screen-branch3">
-      <h2>Close it out</h2>
-      <p class="muted">Time’s up soon. How will you land this?</p>
-      <div class="choices">
-        <div class="choice" data-score="0" data-next="screen-outro" data-feedback="Vague promises are theater. Set observable commitments." onclick="pick(this)">
-          <div class="badge">0</div>
-          <div>“Please try harder next week.”</div>
-        </div>
-        <div class="choice" data-score="1" data-next="screen-outro" data-feedback="Better, but still abstract. Tie to dates and checkpoints." onclick="pick(this)">
-          <div class="badge">1</div>
-          <div>“Let’s aim to improve deadlines going forward.”</div>
-        </div>
-        <div class="choice" data-score="2" data-next="screen-outro" data-feedback="Clear, time-bound, and mutual. Nice." onclick="pick(this)">
-          <div class="badge">2</div>
-          <div>“We’ll lock a 30-min priority review on Mondays, and you’ll flag risk by Thursday noon. I’ll unblock where needed.”</div>
-        </div>
-      </div>
-      <div id="fb3" class="fb muted" style="margin-top:10px;"></div>
-      <div class="footer"><button class="btn inline continue hidden">Continue →</button></div>
-    </div>
+          <p class="sr-only" id="choice-instruction">Select one option to see how Alex responds.</p>
+          <div class="choices" role="group" id="choice-group" aria-label="Your response" aria-describedby="choice-instruction"></div>
 
-    <div class="card hidden" id="screen-outro">
-      <h2>Your result</h2>
-      <div class="scoreBox" style="margin:10px 0 14px;">
-        <div class="scoreBig"><span id="final">0</span> / 6</div>
-        <div class="progress" style="flex:1"><span id="progressFinal" style="width:0%"></span></div>
+          <div class="verdict" id="verdict" role="status" aria-live="polite" aria-atomic="true" hidden>
+            <span class="tier" id="verdict-tier"><span class="glyph" aria-hidden="true"></span><span id="verdict-tier-text"></span></span>
+            <p><span class="fb-prefix">Feedback:</span> <span id="verdict-text"></span></p>
+          </div>
+
+          <div class="continue-wrap" id="continue-wrap" hidden>
+            <button class="btn btn-primary" id="continue-btn" type="button">Continue</button>
+          </div>
+        </section>
+
+        <!-- RESULT -->
+        <section id="screen-result" class="screen card" hidden aria-labelledby="h-result" tabindex="-1">
+          <div class="screen-head">
+            <p class="eyebrow t-label">Your result</p>
+            <h2 id="h-result" class="t-headline" tabindex="-1">How that conversation went</h2>
+          </div>
+
+          <div class="result-axes">
+            <div class="axis">
+              <span class="axis-label t-label">How you handled it</span>
+              <div class="band-tag" id="points-band"></div>
+              <p class="result-tally t-body-sm" id="result-tally"></p>
+              <p class="t-body-sm" id="points-copy"></p>
+            </div>
+            <div class="axis">
+              <span class="axis-label t-label">Relationship</span>
+              <div class="band-tag" id="rapport-band"></div>
+              <p class="t-body-sm" id="rapport-copy"></p>
+            </div>
+          </div>
+
+          <div class="callout" id="mismatch-callout" hidden>
+            <p class="t-body-sm" id="mismatch-text"></p>
+          </div>
+
+          <p class="t-body-sm" id="weakest-line"></p>
+
+          <hr class="rule" />
+
+          <h3 class="t-title">What happened, decision by decision</h3>
+          <p class="muted t-body-sm">Here is each call you made, next to the move that tends to work best. No trick answers. Just what gives you the best shot at a useful conversation.</p>
+          <div class="review-list" id="review-list"></div>
+
+          <details id="walkback-details">
+            <summary>See the model answer for every decision</summary>
+            <div class="walkback" id="walkback"></div>
+            <p class="t-body-sm" style="margin-top:var(--s2)"><strong>The order is the lesson:</strong> be specific, get curious, diagnose and split the blame, then commit, and repair the moment it wobbles. Skip a step and the next gets harder. True with Alex, true in your next real 1:1.</p>
+          </details>
+
+          <hr class="rule" />
+
+          <h3 class="t-title">Share or save your result</h3>
+          <div class="share-row">
+            <button class="btn btn-secondary" id="copy-link-btn" type="button">Copy link to this result</button>
+            <button class="btn btn-ghost" id="copy-result-btn" type="button">Copy my result as text</button>
+          </div>
+          <p class="share-help muted t-body-sm">The link reopens this page on your scores and feedback. The exact wording you chose at each step isn't stored, so a shared result shows the model answers rather than a transcript. Nothing is saved anywhere; it all travels in the link itself.</p>
+
+          <p class="sr-only" id="cheatsheet-desc">The cheat sheet is one page: five steps (open with SBI then stop, lead with a real question, repair if it wobbles, find the cause and split it, close concrete) plus three gut-check questions.</p>
+          <div class="actions">
+            <button class="btn btn-primary" id="retry-btn" type="button">Try a different opener</button>
+            <button class="btn btn-ghost" id="restart-btn" type="button">Start over</button>
+            <button class="btn btn-secondary" id="print-btn" type="button" aria-describedby="cheatsheet-desc">Print the cheat sheet</button>
+            <button class="btn btn-ghost" id="download-sheet-btn" type="button" aria-describedby="cheatsheet-desc">Download it as a file</button>
+          </div>
+
+          <p class="end-cta t-body-sm">Built by The Human Co. We help teams have the conversations they keep putting off. If you want something like this for your managers, <a href="https://thehumanco.org" target="_blank" rel="noopener">come and say hello</a>.</p>
+
+          <details id="builders">
+            <summary>For builders: embed or download this tool</summary>
+            <p class="t-body-sm" style="margin-top:var(--s2)">This is one self-contained HTML file. Embed it with the snippet below, or download the whole thing and host it yourself. No build step, no dependencies.</p>
+            <div class="codeblock" id="embed-snippet"></div>
+            <p class="t-body-sm muted">Set the height to somewhere between 760 and 900 depending on your layout.</p>
+            <a class="btn btn-ghost" id="download-tool-link" href="#" download="the-feedback-dilemma.html">Download this tool as a single file</a>
+          </details>
+        </section>
+
       </div>
-      <p class="muted">Score 5–6: you balanced clarity and care. 3–4: decent, but tighten the close. 0–2: you’re venting, not leading.</p>
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <h2>Download: Feedback Cheat-Sheet</h2>
-          <ul class="checklist">
-            <li><span class="check">✔</span> <strong>Prepare SBI:</strong> Situation, Behavior, Impact in one sentence each.</li>
-            <li><span class="check">✔</span> <strong>Lead with curiosity:</strong> two what/how questions before advice.</li>
-            <li><span class="check">✔</span> <strong>Agree next steps:</strong> one habit + one checkpoint + one date.</li>
-          </ul>
-          <button class="btn secondary" onclick="downloadChecklist()">Download PDF</button>
-        </div>
-        <div class="kb">
-          <h2>Embed this demo</h2>
-          <p class="small">Embed it anywhere with an iframe:</p>
-          <pre class="small" style="white-space:pre-wrap;background:#0b1220;color:#cfe3ff;padding:10px;border-radius:10px;overflow:auto"><code>&lt;iframe src="https://feedback-demo-omega.vercel.app" width="100%" height="760" style="border:0;border-radius:16px;overflow:hidden"&gt;&lt;/iframe&gt;</code></pre>
-          <p class="small">Tip: set <span class="kbd">height</span> to 760–900 depending on your layout.</p>
-        </div>
-      </div>
-      <div class="footer">
-        <button class="btn ghost inline" onclick="showScreen('screen-intro')">Restart</button>
-        <a class="link" id="downloadLink" href="#" download="feedback-dilemma-demo.html">Download this demo</a>
-      </div>
-    </div>
+
+      <!-- Live regions: persistent, outside swapped screens -->
+      <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+      <div id="alert" class="sr-only" role="alert" aria-atomic="true"></div>
+    </main>
   </div>
 
-  <script>
-    let score = 0;
-    const MAX = 6; // three scored SBI decisions, 0–2 points each
+  <!-- Cheat sheet: visually clipped on screen (readable by screen readers), shown in full on print.
+       Populated from the CHEAT_SHEET single source of truth by renderCheatSheet() on boot. -->
+  <section id="cheatsheet" lang="en" aria-label="Hard-conversation cheat sheet (printable)"></section>
 
-    function start(){
-      score = 0;
-      document.getElementById('score').textContent = score;
-      setProgress(0);
-      // Reset every screen so a replay starts clean
-      document.querySelectorAll('.card').forEach(card => {
-        card.dataset.answered = '';
-        card.querySelectorAll('.choice').forEach(c => {
-          c.classList.remove('chosen','dim');
-          c.style.pointerEvents = '';
-        });
-        const fb = card.querySelector('.fb'); if(fb) fb.innerHTML = '';
-        const cont = card.querySelector('.continue'); if(cont) cont.classList.add('hidden');
-      });
-      showScreen('screen-gate1');
-      primeDownload();
+<script>
+"use strict";
+(function(){
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  var rapport = 50;          // 0-100
+  var score = 0;             // hidden during play
+  var labelled = false;      // identity-label / attack flag
+  var picks = [];            // {decision, optionId, score, chosenText} per scored decision
+  var stepIndex = 0;         // 0..3 scored decisions completed
+  var d2Variant = null;      // which D2 node was rendered (for review mapping)
+  var fromShared = false;    // true when the result was loaded from a shared link (no transcript)
+
+  // When the file is hosted over http(s), embed code should point at wherever this
+  // copy actually lives. Falls back to the canonical Vercel URL only on file://.
+  var EMBED_URL = (location.protocol.indexOf("http") === 0)
+    ? (location.origin + location.pathname)
+    : "https://feedback-demo-omega.vercel.app";
+
+  // Brand tokens mirrored from :root so generated artifacts (embed snippet,
+  // downloaded cheat sheet) stay in lockstep if the palette is retuned.
+  var BRAND = {
+    ink:"#101216", canvas:"#EAEAEA", surface:"#FFFFFF",
+    line:"#3A4252", pink:"#D11F4E", radius:"4px",
+    fontDisplay:"'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontBody:"'Work Sans', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif"
+  };
+
+  // Single source of truth for the cheat sheet. Both the on-screen print region
+  // and the downloadable file are generated from this so they can never diverge.
+  var CHEAT_SHEET = {
+    title:"The Hard-Conversation Cheat Sheet",
+    intro:"The Human Co. One page. Keep it open before your next hard conversation.",
+    steps:[
+      { h:"Open with SBI, then stop.", b:"Situation plus observable Behaviour plus Impact, in one breath. Name a change in pattern if there is one. Then hand them the floor." },
+      { h:"Lead with a real question.", b:"A genuine “what” or “how” before any instruction. No verdict before they have spoken. “Walk me through your last two weeks.”" },
+      { h:"Repair if it wobbles.", b:"If they say “I feel told off”: “Let me reset, I'm not here to have a go. Can we start again?” Outcome over ego." },
+      { h:"Find the cause before the fix, and split it.", b:"A vague hint (“it's been a lot”) is a door. Open it. Separate what's yours (the system, the blind spot) from what's theirs (the missed heads-up). Name both." },
+      { h:"Close concrete.", b:"One observable action each, plus a date, plus a review point. “Keep me posted” is not a plan." }
+    ],
+    gutCheckIntro:"A quick gut check before you go in:",
+    gutChecks:[
+      "Am I describing a behaviour, or labelling the person?",
+      "Am I going in curious, or have I already decided what happened?",
+      "Will the other person leave knowing exactly what to do next?"
+    ],
+    footer:"Made by The Human Co. at thehumanco.org"
+  };
+
+  function band(){
+    if(rapport <= 34) return "GUARDED";
+    if(rapport <= 64) return "WARY";
+    return "OPEN";
+  }
+  function postureGlyph(b){
+    if(b === "GUARDED") return "▲"; // triangle
+    if(b === "WARY") return "■";    // square
+    return "●";                      // circle
+  }
+  function clampRapport(){ rapport = Math.max(0, Math.min(100, rapport)); }
+
+  /* ============================================================
+     CONTENT: NODES
+     Each scored decision = a "slot". Options carry score, dRapport,
+     setsLabel, feedback, and a next() resolver returning a node id.
+     ============================================================ */
+
+  // ---- Decision 1: THE OPENER ----
+  var D1 = {
+    slot: 1,
+    headline: "The opener",
+    speaker: "Alex",
+    line: "“You wanted to see me?” <span class=\"cue\">(pen in hand, shoulders slightly up)</span>",
+    prompt: "Your opening line sets the temperature. Pick it.",
+    options: [
+      { id:"d1a", score:0, dRapport:-20, setsLabel:true,
+        text:"“We need to talk about your attitude. Missing deadlines twice, that's not like the Alex I hired.”",
+        feedback:"‘Attitude’ is a verdict, not an observation, so Alex can only defend against it. You had a real fact (two missed deadlines) and buried it under a character judgement. Watch the guard go up.",
+        next:function(){ return "D2_GUARDED"; } },
+      { id:"d1b", score:1, dRapport:-4,
+        text:"“Deadlines are deadlines. Two have slipped and that can't keep happening. What's going on?”",
+        feedback:"You named the behaviour and did ask a question, good. But you front-loaded the verdict before Alex said a word, so the question sounds like a trap. Curiosity only works if Alex believes the answer can change the outcome.",
+        next:function(){ return "D2_WARY"; } },
+      { id:"d1c", score:2, dRapport:18,
+        text:"“Thanks for coming over. Two things slipped in the last fortnight, the Henderson brief and Tuesday's report. That's not the pattern I'm used to from you, so I want to understand what's been happening before I jump to anything.”",
+        feedback:"This is the move. Specific (two named pieces of work), behaviour not character, framed as a change, which tells Alex you remember they're usually good. ‘Before I jump to anything’ lowers the threat. Now Alex has room to be honest.",
+        next:function(){ return "D2_OPEN"; } }
+    ]
+  };
+
+  // ---- Decision 2 variants (the slot) ----
+  var D2_OPEN = {
+    slot:2, variant:"OPEN",
+    headline:"The response",
+    speaker:"Alex",
+    line:"“Honestly? Since Priya left I've basically been covering two roles. I didn't say anything, I thought I could handle it and I didn't want to be the one moaning about workload. But yeah, two things slipped. The Tuesday one I should've given you a heads-up on, and I didn't.” <span class=\"cue\">(meets your eye, exhales)</span>",
+    prompt:"Alex just handed you the truth. What do you do with it?",
+    options:[
+      { id:"d2o_a", score:2, dRapport:18,
+        text:"“I appreciate you telling me, that took something. Two things: thank you for owning the missed heads-up, and I genuinely didn't clock you'd absorbed Priya's work. Let's deal with both.”",
+        feedback:"Exactly it. Alex gave you the real cause AND owned a genuine mistake, and you matched it. You thanked them, named your own blind spot, and separated the workload (a systems problem) from the heads-up (Alex's to own). Holding both is what makes this fair.",
+        next:function(){ return "D3"; } },
+      { id:"d2o_b", score:1, dRapport:-4,
+        text:"“Why on earth didn't you say something six weeks ago? I could've helped.”",
+        feedback:"Fair frustration, but ‘why on earth’ makes Alex defend the silence rather than feel safe having broken it. The goal-relevant question is ‘what would make it easier to flag this sooner?’, same information, no blame.",
+        next:function(){ return "D3"; } },
+      { id:"d2o_c", score:0, dRapport:5,
+        text:"“Okay, that explains it. Don't worry about the deadlines then, I'll sort the workload.”",
+        feedback:"You swung from manager to rescuer. The workload is yours to fix, but ‘don't worry about the deadlines’ waves away the missed heads-up Alex just owned. Note rapport went up here, that's the trap: the comfortable choice isn't the developmental one.",
+        next:function(){ return "D3"; } }
+    ]
+  };
+
+  var D2_WARY = {
+    slot:2, variant:"WARY",
+    headline:"The response",
+    speaker:"Alex",
+    line:"“I mean... it's been a lot lately. More than usual. I've been trying to keep everything moving but some things have given. I didn't want to make a fuss.” <span class=\"cue\">(uncrosses arms slightly, careful)</span>",
+    prompt:"Alex offered a thread, hedged. What next?",
+    options:[
+      { id:"d2w_a", score:2, dRapport:18,
+        text:"“What do you mean by ‘a lot’? Walk me through what's actually on your plate right now.”",
+        feedback:"You caught the thread (‘a lot, more than usual’) and pulled on it gently. Turning a vague feeling into facts is how you both get something to work with. ‘I didn't want to make a fuss’ was a quiet flag, right to follow it.",
+        next:function(){ return "D3"; } },
+      { id:"d2w_b", score:1, dRapport:-4,
+        text:"“Okay, what can we take off your plate? Let's figure out a fix.”",
+        feedback:"Kind instinct, but you're solving before you understand. ‘I didn't want to make a fuss’ suggests something bigger than a busy fortnight. Fix the surface now and you'll miss it. Diagnose before you prescribe.",
+        next:function(){ return "D3"; } },
+      { id:"d2w_c", score:0, dRapport:-20,
+        text:"“We're all stretched, Alex. The deadlines still need hitting though. Can I rely on you?”",
+        feedback:"Alex risked a bit of honesty and you met it with ‘we're all stretched’ and a loyalty test. ‘Can I rely on you?’ forces a meaningless yes and teaches Alex to stop telling you when they're underwater.",
+        next:function(){ return "D2_REPAIR"; } }
+    ]
+  };
+
+  var D2_GUARDED = {
+    slot:2, variant:"GUARDED",
+    headline:"The response",
+    speaker:"Alex",
+    lineFn:function(){
+      var base = "“Right. I didn't realise I was being graded. I've been busy, same as everyone. If the work's a problem I'll sort it.”";
+      if(labelled){ base += " “I'm not sure what ‘attitude’ has to do with two reports, but fine.”"; }
+      return base + " <span class=\"cue\">(arms folded, flat)</span>";
+    },
+    prompt:"Alex is closed. What's your move?",
+    options:[
+      { id:"d2g_a", score:2, dRapport:18,
+        text:"“I can hear you're frustrated. Let's slow down, I'm not trying to catch you out. Walk me through your last two weeks?”",
+        feedback:"Strong recovery from a cold start. You acknowledged the feeling without arguing with it and replaced the accusation with a specific invitation. ‘I'm not trying to catch you out’ directly answers the fear Alex is sitting in.",
+        next:function(){ return "D3"; } },
+      { id:"d2g_b", score:0, dRapport:-20,
+        text:"“‘Busy’ isn't really an answer though, is it? Everyone's busy.”",
+        feedback:"Alex told you something real, ‘busy, same as everyone’, and you swatted it. ‘Everyone's busy’ teaches Alex that honesty gets minimised. Expect less of it.",
+        next:function(){ return "D2_REPAIR"; } },
+      { id:"d2g_c", score:0, dRapport:-10,
+        text:"“Fine. Just make sure it doesn't happen again.”",
+        feedback:"You blinked. Dropping it feels like de-escalation but it's avoidance, nothing's understood, nothing changes. ‘Don't let it happen again’ with no shared understanding of why is a wish, not a plan.",
+        next:function(){ return "D2_REPAIR"; } }
+    ]
+  };
+
+  // D2_REPAIR replaces the D2 slot (still scored in slot 2)
+  var D2_REPAIR = {
+    slot:2, variant:"REPAIR",
+    headline:"The repair",
+    speaker:"Alex",
+    line:"“I feel like I'm getting told off here. I'm doing my best.” <span class=\"cue\">(visibly closed, half-disengaged)</span>",
+    prompt:"The conversation has ruptured. Can you reset it?",
+    options:[
+      { id:"d2r_a", score:2, dRapport:22,
+        text:"“Fair, let me reset. I'm not here to have a go. I care that you're set up to succeed, and I want to understand what got in the way. Can we start again?”",
+        feedback:"Exactly right. You named the rupture, separated your intent from how it landed, and reopened with a real question. That's clarity over catharsis, the goal is a better outcome, not winning the moment.",
+        next:function(){ return "D3"; } },
+      { id:"d2r_b", score:0, dRapport:-10,
+        text:"“I'm not telling you off, but the deadlines genuinely can't keep slipping, alright?”",
+        feedback:"When someone says ‘I feel told off,’ restating your point proves them right. You chose being understood over keeping them engaged. That's catharsis, not clarity.",
+        next:function(){ return "D3"; } },
+      { id:"d2r_c", score:0, dRapport:-5,
+        text:"“Look, let's just agree it improves and move on.”",
+        feedback:"Smoothing it over feels kind but teaches Alex the real issue is undiscussable. You'll be back here next month. Avoidance is just deferred conflict.",
+        next:function(){ return "D3"; } }
+    ]
+  };
+
+  // ---- Decision 3 variants ----
+  var D3_BURIED = {
+    slot:3, variant:"BURIED",
+    headline:"The pivot",
+    speaker:"Alex",
+    line:"“So what do you actually want me to do differently?” <span class=\"cue\">(genuine, but you're flying blind, you never learned about Priya)</span>",
+    prompt:"You're being asked for a plan. But do you actually understand the cause?",
+    options:[
+      { id:"d3b_a", score:2, dRapport:18,
+        text:"“Before we fix anything, I've been pushing for the ‘what’ and not asking how you're actually doing. Is there something about the workload I'm not seeing?”",
+        feedback:"Excellent self-correction. You noticed you'd been managing the symptom and opened the question you should have led with. ‘Is there something I'm not seeing?’ explicitly invites Alex to tell you the protected thing. It's not too late.",
+        next:function(){ return rapport >= 65 ? "D4_SURFACED" : "D4_NOCAUSE"; } },
+      { id:"d3b_b", score:0, dRapport:-15,
+        text:"“Let's set up a daily check-in so I can see where things are.”",
+        feedback:"A daily check-in treats missed deadlines as a trust problem. To Alex it reads as monitoring, and it adds a meeting to a plate you never realised was overloaded. Prescribing without a diagnosis.",
+        next:function(){ return "D4_NOCAUSE"; } },
+      { id:"d3b_c", score:1, dRapport:-4,
+        text:"“I need you to prioritise better and flag risks earlier. Can you do that?”",
+        feedback:"‘Prioritise better’ assumes the problem is Alex's judgement. If the real issue is too much work for one person, that's impossible advice, and Alex knows it, which is why you'll get a hollow ‘sure’. The plan's built on the wrong cause.",
+        next:function(){ return "D4_NOCAUSE"; } }
+    ]
+  };
+
+  var D3_OPEN = {
+    slot:3, variant:"OPEN",
+    headline:"The pivot",
+    speaker:"Alex",
+    line:"“If I'm honest, the Priya thing isn't going away on its own. I want to do good work, I'm just doing two people's worth of it. I'm not dodging the deadlines, I need them to be possible.”",
+    prompt:"The real cause is on the table. How do you handle accountability?",
+    options:[
+      { id:"d3o_a", score:2, dRapport:18,
+        text:"“Agreed. Here's what I'll own and what I'd like you to own: I'll take the backfill to my manager this week and protect your time on the live work meanwhile. In return, if something's going to slip, I need the heads-up before the deadline, not after. Deal?”",
+        feedback:"The whole point of the conversation. The workload is a structural problem you're accountable for; the missed heads-up is a behaviour Alex owns. Both named, both concrete, both with an owner. That's feedback that changes something.",
+        next:function(){ return "D4_SURFACED"; } },
+      { id:"d3o_b", score:0, dRapport:5,
+        text:"“Totally hear you. Leave the workload with me, I'll deal with it.”",
+        feedback:"Generous, and the workload is yours to escalate, but a one-sided deal isn't development. Alex still owns the missed heads-up; a plan with no ask quietly says ‘I don't expect anything to change on your side’, which isn't true or fair to the team.",
+        next:function(){ return "D4_SURFACED"; } },
+      { id:"d3o_c", score:0, dRapport:-20, setsLabel:true,
+        text:"“Good. So now that I know, I'll expect you to manage your time around it and hit the dates.”",
+        feedback:"The cruellest option because it looks reasonable. You heard Alex is doing two jobs and answered ‘so hit the dates anyway’. You extracted the confession and offered nothing back. After this, Alex won't tell you the truth again, you've proven it isn't safe.",
+        next:function(){ return "D4_DAMAGED"; } }
+    ]
+  };
+
+  // ---- Decision 4 variants ----
+  var D4_SURFACED = {
+    slot:4, variant:"SURFACED",
+    headline:"The close",
+    speaker:"Alex",
+    line:"“Okay. That actually feels manageable. What do you want me to do on my side?”",
+    prompt:"You both understand the problem. Land it.",
+    options:[
+      { id:"d4s_a", score:2, dRapport:18,
+        text:"“Two things, written down: I'll have an answer on the backfill by Friday and email you which tasks to pause. You send me a two-line Monday status flagging anything at risk, so we catch the next slip a week early. We check in next Monday and adjust.”",
+        feedback:"Textbook close. Both sides have a named action and a date, and it's observable, you'll know Monday whether it's working. You built in the early-warning habit that fixes the real failure, and set a review, so it's a loop, not a lecture.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4s_b", score:1, dRapport:-4,
+        text:"“Great. I'll sort the backfill and you keep me posted. Thanks for being honest.”",
+        feedback:"The relationship's in a good place, which matters. But ‘keep me posted’ isn't a commitment, no date, no format, nothing you can check. Pin one observable thing with a deadline or this slips back in a fortnight.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4s_c", score:0, dRapport:0,
+        text:"“Right, glad we sorted that. I'll let you get back to it.”",
+        feedback:"Great conversation, then no plan. Alex leaves feeling better with no idea what changes tomorrow, and you'll have this again next month. Clarity over catharsis: the warm feeling isn't the outcome, the agreed next step is.",
+        next:function(){ return "RESULT"; } }
+    ]
+  };
+
+  var D4_NOCAUSE = {
+    slot:4, variant:"NOCAUSE",
+    headline:"The close",
+    speaker:"Alex",
+    line:"“Sure. I'll try to stay on top of it.” <span class=\"cue\">(neutral, a little resigned)</span>",
+    prompt:"You never found the cause. How do you close?",
+    options:[
+      { id:"d4n_a", score:2, dRapport:18,
+        text:"“Before you go, I still don't feel like I understand what actually caused the slips, and ‘try harder’ won't fix that. Can we put 20 minutes in tomorrow, when neither of us is between meetings, so I can properly understand your workload?”",
+        feedback:"The most honest move available. You got compliance (‘I'll try’) but not understanding, and rather than paper over it you bought time to do it properly. Naming that you don't yet understand the cause models the curiosity this needed from the start.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4n_b", score:1, dRapport:-4,
+        text:"“Okay, let's set a reminder to review where things are next week.”",
+        feedback:"Better than nothing, there's a follow-up. But you're scheduling a check-in on a problem you still can't name. Next week is likely this same conversation. A checkpoint without shared understanding just delays the slip.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4n_c", score:0, dRapport:-10,
+        text:"“Good. I'm trusting you to fix this, Alex.”",
+        feedback:"‘I'm trusting you to fix this’ sounds supportive but loads the whole problem onto Alex and adds your trust as a threat. You never found out what ‘this’ is. Alex leaves under more pressure and no clearer, two misses are about to become three.",
+        next:function(){ return "RESULT"; } }
+    ]
+  };
+
+  var D4_DAMAGED = {
+    slot:4, variant:"DAMAGED",
+    headline:"The close",
+    speaker:"Alex",
+    line:"“Yep. Understood. I'll hit the dates.” <span class=\"cue\">(guard fully back up, flat)</span>",
+    prompt:"The trust is damaged. The strong close isn't available. What's left?",
+    options:[
+      { id:"d4d_a", score:2, dRapport:20,
+        text:"“Actually, scrap that. I reacted badly. You told me you're doing two jobs and I told you to cope. That's on me. Can we start the workload part again?”",
+        feedback:"Almost no one does this, and it's the most valuable skill in the room: catching yourself mid-mistake and repairing. You named your misstep without excuses and reopened the door you'd shut. Notice the cost, though, your ceiling here is still below where a clean opener would have taken you. That gap is the lesson.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4d_b", score:0, dRapport:-5,
+        text:"“Good. Let's leave it there.”",
+        feedback:"You got the words (‘I'll hit the dates’) and lost the person. Alex has filed this under ‘never be honest with them again’. The dates might be met short-term through grind, until Alex burns out or leaves, and you won't see it coming.",
+        next:function(){ return "RESULT"; } },
+      { id:"d4d_c", score:0, dRapport:-10,
+        text:"“And going forward, flag things earlier, yeah?”",
+        feedback:"Bleak irony: you're asking Alex to ‘flag things earlier’ moments after punishing them for being honest. They'll smile, agree, and never do it. You can't demand candour and penalise it in the same conversation.",
+        next:function(){ return "RESULT"; } }
+    ]
+  };
+
+  var NODES = {
+    D1:D1,
+    D2_OPEN:D2_OPEN, D2_WARY:D2_WARY, D2_GUARDED:D2_GUARDED, D2_REPAIR:D2_REPAIR,
+    D3_BURIED:D3_BURIED, D3_OPEN:D3_OPEN,
+    D4_SURFACED:D4_SURFACED, D4_NOCAUSE:D4_NOCAUSE, D4_DAMAGED:D4_DAMAGED
+  };
+
+  // D3 is a logical slot that resolves to a variant by truth-gate at render time.
+  function resolveD3(){ return rapport >= 65 ? "D3_OPEN" : "D3_BURIED"; }
+
+  /* ============================================================
+     REVIEW / WALK-BACK DATA (model answers, always the ceiling)
+     ============================================================ */
+  var DECISION_META = {
+    1:{ title:"1 · The opener", skill:"a clean SBI opener",
+        model:"“Two deadlines slipped, Henderson and Tuesday's report. That's not your usual pattern, so I want to understand what's going on before I jump to anything.”",
+        why:"Specific situations, observable behaviour, framed as a change (not a trait), curiosity before judgement. SBI, then stop. Skill: SBI specificity." },
+    2:{ title:"2 · The response", skill:"leading with a real question",
+        model:"“I can hear this has been a lot. Walk me through your actual last two weeks, what's on your plate?”",
+        why:"Acknowledges the feeling without arguing, converts a vague hint into facts, follows Alex's thread not your agenda. Skill: curiosity-first." },
+    3:{ title:"3 · The pivot", skill:"surfacing the cause before fixing",
+        model:"“Is there something about the workload I'm not seeing? ... Okay, here's what I'll own, and what I'd like you to own.”",
+        why:"Surfaces the real cause, then splits accountability: the system is yours, the missed heads-up is Alex's. Skill: diagnose plus split accountability." },
+    4:{ title:"4 · The close", skill:"a concrete, dated commitment",
+        model:"“I'll answer the backfill by Friday and tell you what to pause. You send me a two-line Monday status flagging anything at risk. We review next Monday.”",
+        why:"Concrete, dated, observable, mutual, with a review loop, targeting the actual failure (the missing early warning). Skill: concrete commitments." }
+  };
+
+  /* ============================================================
+     DOM
+     ============================================================ */
+  var $ = function(id){ return document.getElementById(id); };
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var screens = {
+    intro:$("screen-intro"),
+    primer:$("screen-primer"),
+    decision:$("screen-decision"),
+    result:$("screen-result")
+  };
+
+  function setLive(msg){
+    var r = $("live");
+    r.textContent = "";
+    requestAnimationFrame(function(){ r.textContent = msg; });
+  }
+  function setAlert(msg){
+    var r = $("alert");
+    r.textContent = "";
+    requestAnimationFrame(function(){ r.textContent = msg; });
+  }
+
+  function showScreen(key, opts){
+    opts = opts || {};
+    Object.keys(screens).forEach(function(k){ screens[k].hidden = true; });
+    var el = screens[key];
+    el.hidden = false;
+
+    // status strip visible only during decisions
+    $("statusbar").hidden = (key !== "decision");
+
+    if(opts.announce) setLive(opts.announce);
+
+    var heading = opts.focusEl || el.querySelector("h1, h2");
+    if(heading){
+      heading.setAttribute("tabindex","-1");
+      requestAnimationFrame(function(){ heading.focus(); });
+    }
+  }
+
+  function updateStatus(currentSlot, postureBand){
+    $("step-now").textContent = currentSlot;
+    // Progress bar is aria-hidden; the textual #step-label conveys progress to AT.
+    $("progress-fill").style.inlineSize = (stepIndex / 4 * 100) + "%";
+    var b = postureBand || band();
+    // Glyph is decorative (aria-hidden); the word carries the meaning for AT.
+    $("posture-glyph").textContent = postureGlyph(b) + " ";
+    $("posture-word").textContent = b;
+  }
+
+  /* ============================================================
+     SHUFFLE (no telegraphing)
+     ============================================================ */
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ============================================================
+     RENDER A DECISION NODE
+     ============================================================ */
+  var currentNode = null;
+
+  function renderNode(node){
+    currentNode = node;
+
+    // Heading + eyebrow
+    $("decision-eyebrow").textContent = "Decision " + node.slot + " of 4";
+    var h = $("h-decision");
+    h.textContent = node.headline;
+
+    // Scene
+    $("scene-speaker").textContent = node.speaker || "Alex";
+    var line = node.lineFn ? node.lineFn() : node.line;
+    $("scene-line").innerHTML = line;
+
+    // Prompt
+    $("decision-prompt").textContent = node.prompt;
+
+    // Reset verdict + continue. #verdict stays a role="status" live region;
+    // we only toggle [hidden]. Clearing its text first prevents a stale
+    // announcement firing when the next decision's verdict is populated.
+    var verdict = $("verdict");
+    verdict.hidden = true;
+    verdict.className = "verdict";
+    $("verdict-text").textContent = "";
+    $("verdict-tier-text").textContent = "";
+    $("continue-wrap").hidden = true;
+
+    // Build choices (shuffled)
+    var group = $("choice-group");
+    group.innerHTML = "";
+    var ordered = shuffle(node.options);
+    ordered.forEach(function(opt){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "choice";
+      btn.setAttribute("data-opt-id", opt.id);
+      var tag = document.createElement("span");
+      tag.className = "chosen-tag";
+      tag.textContent = "✓ Your choice";
+      var txt = document.createElement("span");
+      txt.className = "choice-text";
+      txt.textContent = opt.text;
+      btn.appendChild(tag);
+      btn.appendChild(txt);
+      btn.addEventListener("click", function(){ onChoose(node, opt, btn); });
+      group.appendChild(btn);
+    });
+
+    updateStatus(node.slot, band());
+  }
+
+  var TIER = {
+    2:{ cls:"is-strong", word:"Strong move", glyph:"✓" },
+    1:{ cls:"is-partial", word:"Partial", glyph:"~" },
+    0:{ cls:"is-weak", word:"Costly", glyph:"✗" }
+  };
+
+  function onChoose(node, opt, btn){
+    // Lock the group
+    var group = $("choice-group");
+    var all = group.querySelectorAll(".choice");
+    Array.prototype.forEach.call(all, function(c){
+      c.disabled = true;
+      c.setAttribute("aria-disabled","true");
+      if(c !== btn){ c.classList.add("is-dim"); }
+    });
+    btn.classList.add("is-chosen");
+
+    // Apply score + rapport
+    score += opt.score;
+    rapport += opt.dRapport;
+    clampRapport();
+    if(opt.setsLabel){ labelled = true; }
+
+    // Record pick keyed by slot (REPAIR overwrites the slot-2 entry)
+    recordPick(node.slot, opt, node.variant || null);
+
+    // mark step complete (slot count, but slot 2 may render twice via REPAIR;
+    // count distinct slots completed)
+    stepIndex = countCompletedSlots();
+
+    // Render verdict. #verdict is a role="status" aria-live region, so populating it
+    // while it becomes visible is what announces the result to screen readers. We do
+    // NOT move focus afterwards (that would race / interrupt the polite announcement);
+    // focus stays on the chosen button and the user tabs to Continue when ready.
+    var t = TIER[opt.score];
+    var verdict = $("verdict");
+    verdict.className = "verdict " + t.cls + (reduceMotion ? "" : " fade-in");
+    $("verdict-tier").className = "tier";
+    $("verdict-tier").firstChild.textContent = t.glyph;
+    $("verdict-tier-text").textContent = t.word;
+    $("verdict-text").textContent = opt.feedback;
+    verdict.hidden = false;
+
+    // Posture shift (updates the visible status strip)
+    var newBand = band();
+    updateStatus(node.slot, newBand);
+
+    // Reveal continue
+    var cw = $("continue-wrap");
+    cw.hidden = false;
+    var cbtn = $("continue-btn");
+    var nextId = opt.next();
+    cbtn.onclick = function(){ goNext(nextId); };
+  }
+
+  // Track which slots have a recorded pick
+  function recordPick(slot, opt, variant){
+    // remove any existing pick for this slot (REPAIR replaces D2)
+    picks = picks.filter(function(p){ return p.slot !== slot; });
+    picks.push({ slot:slot, optionId:opt.id, score:opt.score, text:opt.text });
+    if(slot === 2 && variant){ d2Variant = variant; }
+  }
+  function countCompletedSlots(){
+    var seen = {};
+    picks.forEach(function(p){ seen[p.slot] = true; });
+    return Object.keys(seen).length;
+  }
+
+  /* ============================================================
+     NAVIGATION
+     ============================================================ */
+  function goNext(nextId){
+    if(nextId === "RESULT"){ finalize(); return; }
+    if(nextId === "D3"){ nextId = resolveD3(); }
+    var node = NODES[nextId];
+    if(!node){ finalize(); return; }
+    renderNode(node);
+    showScreen("decision", {
+      announce: "Decision " + node.slot + " of 4. " + node.headline + ". Alex's posture: " + band() + ".",
+      focusEl: $("h-decision")
+    });
+  }
+
+  function startConversation(){
+    // go through primer first
+    showScreen("primer", { announce:"Before you start. SBI keeps feedback about behaviour, not character." });
+  }
+
+  function beginScenario(){
+    renderNode(D1);
+    showScreen("decision", {
+      announce: "Decision 1 of 4. The opener. Alex's posture: " + band() + ".",
+      focusEl: $("h-decision")
+    });
+  }
+
+  /* ============================================================
+     RESET / REPLAY
+     ============================================================ */
+  function resetState(){
+    rapport = 50; score = 0; labelled = false; picks = []; stepIndex = 0; d2Variant = null; fromShared = false;
+  }
+
+  function fullRestart(){
+    resetState();
+    clearHash();
+    showScreen("intro", { announce:"The Feedback Dilemma. A practice round on giving difficult feedback." });
+  }
+
+  function retryFromResult(){
+    resetState();
+    clearHash();
+    renderNode(D1);
+    showScreen("decision", {
+      announce:"New run. Decision 1 of 4. The opener.",
+      focusEl: $("h-decision")
+    });
+  }
+
+  /* ============================================================
+     RESULT
+     ============================================================ */
+  function finalize(){
+    renderResult();
+    showScreen("result", {
+      announce:"Result ready. You made the strongest move on " + strongestCount() + " of 4 decisions. A review of every decision is below.",
+      focusEl: $("h-result")
+    });
+    writeHash();
+  }
+
+  function pointsBand(){
+    if(score >= 7) return { tag:"Skilled", cls:"band-strong", glyph:"●",
+      copy:"You ran this the way it should be run: specific, curious, and fair. You named the behaviour without attacking the person, found the real cause, and left with a concrete plan you both own. Hard to do under time pressure. You did it." };
+    if(score >= 5) return { tag:"Solid, with edges", cls:"band-mid", glyph:"◐",
+      copy:"You got the big things right; a couple of moments slipped, usually a verdict that arrived before a question, or a plan that stayed vague. Tighten the openings and the closes." };
+    if(score >= 3) return { tag:"Heard, not understood", cls:"band-mid", glyph:"◐",
+      copy:"You engaged, but worked the symptom more than the cause. Alex complied without opening up. Re-run and try leading every turn with a genuine question before any instruction." };
+    return { tag:"Venting, not leading", cls:"band-weak", glyph:"○",
+      copy:"This landed as a telling-off. Alex defended, you pushed, and the real problem never made the table. Feedback isn't a place to offload your frustration. It's there to change what happens next. Lead with curiosity." };
+  }
+
+  function rapportBandCopy(){
+    var b = band();
+    if(b === "OPEN") return { tag:"OPEN", cls:"band-strong", glyph:postureGlyph("OPEN"),
+      copy:"Alex trusted you with the truth and left more honest than they arrived. That trust makes every future hard conversation easier." };
+    if(b === "WARY") return { tag:"WARY", cls:"band-mid", glyph:postureGlyph("WARY"),
+      copy:"Alex stayed cautious. You didn't lose them, but they kept something back. Notice which lines made them hedge." };
+    return { tag:"GUARDED", cls:"band-weak", glyph:postureGlyph("GUARDED"),
+      copy:"Alex closed up and stayed closed. Whatever was really going on, you didn't get to hear it. Look back at where the door shut." };
+  }
+
+  function weakestPick(){
+    if(picks.length === 0) return null;
+    var sorted = picks.slice().sort(function(a,b){
+      if(a.score !== b.score) return a.score - b.score;
+      return a.slot - b.slot;
+    });
+    return sorted[0];
+  }
+
+  // Count of decisions where the strongest move was made (score 2), 0-4.
+  function strongestCount(){
+    var n = 0;
+    picks.forEach(function(p){ if(p.score === 2) n++; });
+    return n;
+  }
+
+  function renderResult(){
+    // "How you handled it" axis: lead with the band, then a quiet skills tally.
+    // Deliberately NOT a points-out-of-8 grade (that reads as a quiz score and
+    // reintroduces right-answer-hunting); the tally counts strongest moves made.
+    var pb = pointsBand();
+    var pbEl = $("points-band");
+    pbEl.className = "band-tag " + pb.cls;
+    pbEl.innerHTML = "<span class=\"glyph\" aria-hidden=\"true\">" + pb.glyph + "</span> " + pb.tag;
+    var strong = strongestCount();
+    $("result-tally").innerHTML = "You made the strongest move on <span class=\"tally-num\">" + strong + " of 4</span> decisions.";
+    $("points-copy").textContent = pb.copy;
+
+    // Rapport axis
+    var rb = rapportBandCopy();
+    var rbEl = $("rapport-band");
+    rbEl.className = "band-tag " + rb.cls;
+    rbEl.innerHTML = "<span class=\"glyph\" aria-hidden=\"true\">" + rb.glyph + "</span> " + rb.tag;
+    $("rapport-copy").textContent = rb.copy;
+
+    // Weakest insert: show for anyone below the top band (they need it most).
+    // Hidden only for the top band, where there is no weak moment to point to.
+    var wkLine = $("weakest-line");
+    if(score < 7){
+      var wk = weakestPick();
+      if(wk && wk.score < 2){
+        wkLine.innerHTML = "<strong>The decision worth revisiting first is decision " + wk.slot + ": " + DECISION_META[wk.slot].skill + ".</strong>";
+        wkLine.hidden = false;
+      } else { wkLine.hidden = true; }
+    } else {
+      wkLine.hidden = true;
     }
 
-    function setProgress(p){
-      document.getElementById('progress').style.width = Math.max(0, Math.min(100, p)) + '%';
+    // Mismatch callout: technically fine but cold
+    var mc = $("mismatch-callout");
+    var b = band();
+    if(score >= 5 && (b === "GUARDED" || (b === "WARY" && rapport < 50))){
+      $("mismatch-text").innerHTML = "Interesting: you said mostly the right things, but Alex still shut down. Technically-correct feedback delivered without warmth still lands as a verdict. Watch your timing, how soon a ‘but’ or a ‘need you to’ arrived after Alex spoke.";
+      mc.hidden = false;
+    } else {
+      mc.hidden = true;
     }
 
-    // Intro warm-up: unscored framing choice, just routes onward.
-    function warmup(el){
-      showScreen(el.dataset.next || 'screen-mini');
+    renderReview();
+    renderWalkback();
+    renderEmbed();
+    primeDownload();
+  }
+
+  var REVIEW_TAG = {
+    2:{ cls:"r-matched", word:"Matched", glyph:"✓" },
+    1:{ cls:"r-close", word:"Close", glyph:"◐" },
+    0:{ cls:"r-rethink", word:"Worth a rethink", glyph:"→" }
+  };
+
+  function renderReview(){
+    var list = $("review-list");
+    list.innerHTML = "";
+
+    // Shared links carry scores, not the exact wording chosen. When a result is
+    // loaded from a link we must NOT print a "You chose:" line, because we don't
+    // know it and would otherwise put words in the recipient's mouth. Instead we
+    // show the score tier + model answer + why, prefaced by an honest note.
+    if(fromShared){
+      var note = document.createElement("p");
+      note.className = "muted t-body-sm";
+      note.style.margin = "0 0 var(--s2)";
+      note.textContent = "This is a shared result. The scores and feedback are real; the exact wording chosen at each step isn't stored in the link, so each decision shows the strongest move rather than a transcript.";
+      list.appendChild(note);
     }
 
-    // Scored decision: lock the screen, reveal feedback, then show Continue.
-    function pick(el){
-      const card = el.closest('.card');
-      if(card.dataset.answered) return;            // one scored answer per screen
-      card.dataset.answered = '1';
+    // order picks by slot
+    var bySlot = picks.slice().sort(function(a,b){ return a.slot - b.slot; });
+    bySlot.forEach(function(p){
+      var meta = DECISION_META[p.slot];
+      var tag = REVIEW_TAG[p.score];
+      var row = document.createElement("div");
+      row.className = "review-row " + tag.cls;
 
-      score += Number(el.dataset.score || 0);
-      document.getElementById('score').textContent = score;
-      const answered = document.querySelectorAll('.card[data-answered="1"]').length;
-      setProgress(answered / 3 * 100);
+      var head = document.createElement("div");
+      head.className = "r-head";
+      var title = document.createElement("span");
+      title.className = "r-title";
+      title.textContent = meta.title;
+      var rtag = document.createElement("span");
+      rtag.className = "r-tag";
+      rtag.innerHTML = "<span aria-hidden=\"true\">" + tag.glyph + "</span> " + tag.word;
+      head.appendChild(title);
+      head.appendChild(rtag);
+      row.appendChild(head);
 
-      card.querySelectorAll('.choice').forEach(c => {
-        c.style.pointerEvents = 'none';
-        if(c !== el) c.classList.add('dim');
-      });
-      el.classList.add('chosen');
+      if(!fromShared){
+        var chose = document.createElement("p");
+        chose.className = "r-field t-body-sm";
+        chose.innerHTML = "<span class=\"lbl\">You chose:</span> " + escapeHtml(p.text);
+        row.appendChild(chose);
+      }
 
-      const fb = card.querySelector('.fb');
-      if(fb && el.dataset.feedback) fb.innerHTML = '<strong>Feedback:</strong> ' + el.dataset.feedback;
+      // Always show the model answer on a shared result (since there's no "you chose"),
+      // and on a live result whenever the pick wasn't the strongest move.
+      if(fromShared || p.score < 2){
+        var strong = document.createElement("p");
+        strong.className = "r-field t-body-sm";
+        strong.innerHTML = "<span class=\"lbl\">Strongest move:</span> " + escapeHtml(meta.model);
+        row.appendChild(strong);
+      }
 
-      const next = el.dataset.next || 'screen-outro';
-      const cont = card.querySelector('.continue');
-      if(cont){
-        cont.classList.remove('hidden');
-        cont.onclick = () => { next === 'screen-outro' ? finalize() : showScreen(next); };
+      var why = document.createElement("p");
+      why.className = "r-field t-body-sm";
+      why.innerHTML = "<span class=\"lbl\">Why:</span> " + meta.why;
+      row.appendChild(why);
+
+      list.appendChild(row);
+    });
+  }
+
+  function renderWalkback(){
+    var wb = $("walkback");
+    wb.innerHTML = "";
+    [1,2,3,4].forEach(function(slot){
+      var meta = DECISION_META[slot];
+      var row = document.createElement("div");
+      row.className = "wb-row";
+      row.innerHTML =
+        "<p class=\"t-label\" style=\"color:var(--text-muted);margin:0 0 4px\">" + escapeHtml(meta.title) + "</p>" +
+        "<p class=\"wb-model t-body-sm\">" + escapeHtml(meta.model) + "</p>" +
+        "<p class=\"t-body-sm\" style=\"margin:4px 0 0\">" + meta.why + "</p>";
+      wb.appendChild(row);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;");
+  }
+
+  /* ============================================================
+     SHARE: hash encode/decode
+     Format (current): #r=v2.<s1><s2><s3><s4>.<rapport>
+       - each s is a score digit 0-2; rapport is the final 0-100 value.
+     Format (legacy):  #r=v1.<s1><s2><s3><s4>
+       - scores only; rapport is re-derived representatively on load.
+
+     The review/score is driven PURELY from the decoded digits. We never
+     reconstruct picks by hunting canonical nodes for a score (a tier could be
+     missing and silently fall back to the wrong option). Score is the sum of
+     the four digits; rapport is taken from the link when present (v2) or
+     derived from canonical per-tier deltas (v1). The shared review is shown
+     without a "You chose:" transcript, so it cannot misattribute wording.
+     ============================================================ */
+
+  function currentPayload(){
+    // need scores for slots 1-4 in order
+    var map = {};
+    picks.forEach(function(p){ map[p.slot] = p.score; });
+    if(map[1] === undefined || map[2] === undefined || map[3] === undefined || map[4] === undefined) return null;
+    var rap = Math.max(0, Math.min(100, Math.round(rapport)));
+    return "v2." + map[1] + map[2] + map[3] + map[4] + "." + rap;
+  }
+
+  function writeHash(){
+    var payload = currentPayload();
+    if(payload){
+      try { history.replaceState(null, "", "#r=" + payload); }
+      catch(e){ location.hash = "r=" + payload; }
+    }
+  }
+  function clearHash(){
+    try { history.replaceState(null, "", location.pathname + location.search); }
+    catch(e){ location.hash = ""; }
+  }
+
+  // Decode either format. Returns { scores:[s1..s4], rapport:Number|null } or null.
+  function decodeHash(){
+    var h = location.hash || "";
+    var m2 = h.match(/^#r=v2\.([0-2])([0-2])([0-2])([0-2])\.(\d{1,3})$/);
+    if(m2){
+      var rap = Number(m2[5]);
+      if(rap < 0 || rap > 100) return null;
+      return { scores:[Number(m2[1]), Number(m2[2]), Number(m2[3]), Number(m2[4])], rapport:rap };
+    }
+    var m1 = h.match(/^#r=v1\.([0-2])([0-2])([0-2])([0-2])$/);
+    if(m1){
+      return { scores:[Number(m1[1]), Number(m1[2]), Number(m1[3]), Number(m1[4])], rapport:null };
+    }
+    return null;
+  }
+
+  // Per-slot, per-tier representative option for shared review (guaranteed entries
+  // for 0/1/2 in every slot). Used only to derive a representative rapport for
+  // legacy v1 links — the review text itself comes from DECISION_META, not these.
+  // Slot 3 deliberately pulls its score-1 representative from D3_BURIED (d3b_c),
+  // because D3_OPEN has no score-1 option.
+  var SHARE_TIER_DELTA = {
+    1:{ 0:-20, 1:-4, 2:18 },   // D1 a/b/c
+    2:{ 0:5,   1:-4, 2:18 },   // D2_OPEN c/b/a
+    3:{ 0:5,   1:-4, 2:18 },   // D3_OPEN b (0), D3_BURIED c (1), D3_OPEN a (2)
+    4:{ 0:0,   1:-4, 2:18 }    // D4_SURFACED c/b/a
+  };
+
+  function tierExists(slot, sc){
+    return SHARE_TIER_DELTA[slot] && SHARE_TIER_DELTA[slot][sc] !== undefined;
+  }
+
+  // Reconstruct a result from a decoded hash. Drives score from the digits and
+  // takes rapport from the link (v2) or derives it representatively (v1).
+  function loadFromHash(decoded){
+    resetState();
+    fromShared = true;
+    var scores = decoded.scores;
+
+    // Guard: every decoded tier must exist for its slot. If not, the link is
+    // malformed/tampered — ignore it and boot to the intro rather than render a
+    // phantom result.
+    for(var g = 1; g <= 4; g++){
+      if(!tierExists(g, scores[g - 1])){ resetState(); showScreen("intro"); return; }
+    }
+
+    var derivedRapport = 50;
+    for(var slot = 1; slot <= 4; slot++){
+      var sc = scores[slot - 1];
+      score += sc;
+      derivedRapport += SHARE_TIER_DELTA[slot][sc];
+      derivedRapport = Math.max(0, Math.min(100, derivedRapport));
+      if(slot === 1 && sc === 0) labelled = true; // d1a sets the identity-label flag
+      // picks carry score + slot only; no transcript text (renderReview suppresses it)
+      picks.push({ slot:slot, optionId:null, score:sc, text:"" });
+    }
+
+    rapport = (decoded.rapport !== null && decoded.rapport !== undefined) ? decoded.rapport : derivedRapport;
+    clampRapport();
+    stepIndex = 4;
+    finalizeFromShared();
+  }
+
+  function finalizeFromShared(){
+    renderResult();
+    showScreen("result", {
+      announce:"Shared result loaded. A review of all four decisions is below.",
+      focusEl: $("h-result")
+    });
+    // keep the hash as-is so it can be re-shared
+  }
+
+  /* ============================================================
+     CLIPBOARD
+     ============================================================ */
+  function copyText(text, okMsg, btn, okLabel){
+    function done(success){
+      if(success){
+        if(btn && okLabel){
+          var orig = btn.textContent;
+          btn.textContent = okLabel;
+          setTimeout(function(){ btn.textContent = orig; }, 2000);
+        }
+        setLive(okMsg);
       } else {
-        next === 'screen-outro' ? finalize() : showScreen(next);
+        setAlert("Couldn't copy automatically. Select the text manually to copy it.");
       }
     }
-
-    function finalize(){
-      showScreen('screen-outro');
-      document.getElementById('final').textContent = score;     // markup already renders "/ 6"
-      document.getElementById('progressFinal').style.width = (score / MAX * 100) + '%';
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ legacyCopy(text, done); });
+    } else {
+      legacyCopy(text, done);
     }
+  }
+  function legacyCopy(text, cb){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly","");
+      ta.style.position = "absolute";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      cb(ok);
+    } catch(e){ cb(false); }
+  }
 
-    function showScreen(id){
-      document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-    }
+  function shareLink(){
+    var payload = currentPayload();
+    if(!payload) return location.href;
+    // On file:// (the "works by opening the file" case) location.origin is the
+    // string "null" in most browsers, which would yield a broken null/... URL.
+    // Fall back to a hash-only share that still round-trips once hosted.
+    var origin = (location.origin && location.origin !== "null") ? location.origin : "";
+    if(!origin){ return "#r=" + payload; }
+    return origin + location.pathname + location.search + "#r=" + payload;
+  }
 
-    function primeDownload(){
-      const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
-      const url = URL.createObjectURL(blob);
-      const a = document.getElementById('downloadLink');
+  function resultAsText(){
+    var label = { 2:"Strongest move", 1:"Close", 0:"Worth a rethink" };
+    var bySlot = {};
+    picks.forEach(function(p){ bySlot[p.slot] = p; });
+    function lbl(slot){ return bySlot[slot] ? label[bySlot[slot].score] : "-"; }
+    var lines = [];
+    lines.push("The Feedback Dilemma - my result");
+    lines.push("Strongest move on " + strongestCount() + " of 4 decisions.");
+    lines.push("");
+    lines.push("1. My opener:    " + lbl(1));
+    lines.push("2. My response:  " + lbl(2));
+    lines.push("3. My pivot:     " + lbl(3));
+    lines.push("4. My close:     " + lbl(4));
+    lines.push("");
+    lines.push("A short practice round on giving hard feedback with the SBI model.");
+    lines.push("Try it: " + shareLink());
+    lines.push("- from The Human Co. (thehumanco.org)");
+    return lines.join("\n");
+  }
+
+  /* ============================================================
+     EMBED + DOWNLOAD
+     ============================================================ */
+  function renderEmbed(){
+    var snippet = '<iframe src="' + EMBED_URL + '" width="100%" height="820" style="border:1px solid ' + BRAND.line + ';border-radius:' + BRAND.radius + '" title="The Feedback Dilemma"><\/iframe>';
+    $("embed-snippet").textContent = snippet;
+  }
+
+  function primeDownload(){
+    var a = $("download-tool-link");
+    try{
+      var blob = new Blob([document.documentElement.outerHTML], { type:"text/html" });
+      var url = URL.createObjectURL(blob);
+      if(a.dataset.url){ try{ URL.revokeObjectURL(a.dataset.url); }catch(e){} }
       a.href = url;
+      a.dataset.url = url;
+      a.removeAttribute("data-download-blocked");
+    } catch(e){
+      // Blob download unavailable (some file:// contexts). Don't leave a dead '#'
+      // anchor that silently scrolls to top — announce the alternative instead.
+      a.href = "#";
+      a.setAttribute("data-download-blocked", "true");
     }
+  }
 
-    function downloadChecklist(){
-      const w = window.open('', '_blank');
-      w.document.write(`
-        <html><head><title>Feedback Cheat-Sheet</title>
-        <style>
-          body{font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:40px; color:#101216}
-          h1{font-size:20px;margin:0 0 8px;color:#3A4252}
-          .muted{color:#5a6a7d;margin-bottom:16px}
-          ul{line-height:1.6}
-          li{margin:8px 0}
-          .brand{position:fixed;bottom:24px;right:24px;color:#FF2E63;font-weight:700}
-        </style></head>
-        <body>
-        <h1>Feedback Cheat-Sheet</h1>
-        <div class="muted">Keep this on one page. Use it in your next 1:1.</div>
-        <ul>
-          <li><strong>SBI opener:</strong> Situation, Behavior, Impact in one sentence each.</li>
-          <li><strong>Ask first:</strong> two what/how questions before advice.</li>
-          <li><strong>Commit:</strong> one habit + one checkpoint + one date.</li>
-          <li><strong>Write it down:</strong> a 30-min weekly priority review saves hours later.</li>
-        </ul>
-        <div class="brand">The Human Co.</div>
-        <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
-        </body></html>
-      `);
-      w.document.close();
+  // Build the cheat-sheet body (shared by the in-DOM print region and the download).
+  function cheatSheetBodyHtml(){
+    var cs = CHEAT_SHEET;
+    var steps = cs.steps.map(function(s){
+      return "<li><strong>" + escapeHtml(s.h) + "</strong> " + escapeHtml(s.b) + "</li>";
+    }).join("");
+    var checks = cs.gutChecks.map(function(c){
+      return "<li>" + escapeHtml(c) + "</li>";
+    }).join("");
+    return "<h1>" + escapeHtml(cs.title) + "</h1>" +
+      "<p class=\"intro\">" + escapeHtml(cs.intro) + "</p>" +
+      "<ol>" + steps + "</ol>" +
+      "<p>" + escapeHtml(cs.gutCheckIntro) + "</p>" +
+      "<ul>" + checks + "</ul>" +
+      "<p class=\"foot\">" + escapeHtml(cs.footer) + "</p>";
+  }
+
+  // Populate the print-only #cheatsheet region from the single source of truth.
+  function renderCheatSheet(){
+    $("cheatsheet").innerHTML = cheatSheetBodyHtml();
+  }
+
+  function downloadCheatSheet(){
+    // Brand-aligned standalone document: canvas/ink/slate tokens, Helvetica display
+    // heading, a 1px slate rule under the title, one restrained pink mark.
+    var css =
+      "body{font-family:" + BRAND.fontBody + ";margin:40px;color:" + BRAND.ink + ";line-height:1.5;max-width:680px;background:" + BRAND.surface + "}" +
+      "h1{font-family:" + BRAND.fontDisplay + ";font-weight:700;letter-spacing:-0.01em;font-size:24px;margin:0 0 8px;padding-bottom:12px;border-bottom:1px solid " + BRAND.line + "}" +
+      "h1::before{content:'';display:inline-block;width:10px;height:10px;background:" + BRAND.pink + ";margin-right:10px;vertical-align:middle}" +
+      "p{margin:0 0 12px}.intro{color:" + BRAND.line + "}ol,ul{line-height:1.6}li{margin:8px 0}" +
+      ".foot{margin-top:24px;color:" + BRAND.line + ";font-size:14px}";
+    var html =
+      "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+      "<title>" + escapeHtml(CHEAT_SHEET.title) + "</title><style>" + css + "</style></head><body>" +
+      cheatSheetBodyHtml() + "</body></html>";
+    try{
+      var blob = new Blob([html], { type:"text/html" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "feedback-cheat-sheet.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 1000);
+      setLive("Cheat sheet downloaded.");
+    } catch(e){ setAlert("Download not available in this context."); }
+  }
+
+  /* ============================================================
+     WIRE UP
+     ============================================================ */
+  $("start-btn").addEventListener("click", startConversation);
+  $("primer-continue").addEventListener("click", beginScenario);
+  $("primer-skip").addEventListener("click", beginScenario);
+  $("retry-btn").addEventListener("click", retryFromResult);
+  $("restart-btn").addEventListener("click", fullRestart);
+  $("print-btn").addEventListener("click", function(){ window.print(); });
+  $("download-sheet-btn").addEventListener("click", downloadCheatSheet);
+  $("copy-link-btn").addEventListener("click", function(){
+    copyText(shareLink(), "Link copied to clipboard.", this, "Link copied");
+  });
+  $("copy-result-btn").addEventListener("click", function(){
+    copyText(resultAsText(), "Result copied to clipboard.", this, "Copied");
+  });
+
+  // Single-file tool download: announce the fallback instead of a dead '#' anchor.
+  $("download-tool-link").addEventListener("click", function(e){
+    if(this.getAttribute("data-download-blocked") === "true"){
+      e.preventDefault();
+      setAlert("Download isn't available when the tool is opened directly from a file. Open it from a web address, or use your browser's Save Page As.");
     }
+  });
 
-    function showScreen(id){
-      document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-    }
+  // Skip link: move keyboard focus into the exercise (not just scroll) so the
+  // next Tab continues from inside the content.
+  document.querySelector(".skip-link").addEventListener("click", function(){
+    var main = $("main");
+    requestAnimationFrame(function(){ main.focus(); });
+  });
 
-    // Init
+  /* ============================================================
+     BOOT
+     ============================================================ */
+  function boot(){
+    renderCheatSheet();
+    renderEmbed();
     primeDownload();
-  </script>
+    var shared = decodeHash();
+    if(shared){
+      loadFromHash(shared);
+    } else {
+      showScreen("intro");
+    }
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+
+})();
+</script>
 </body>
 </html>
